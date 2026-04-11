@@ -17,7 +17,11 @@ export function useExpenses() {
 
   // Save to LocalStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    } catch(e) {
+      console.warn("Storage bloqueado ou cheio", e);
+    }
   }, [expenses]);
 
   const addExpense = useCallback((expense) => {
