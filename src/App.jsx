@@ -38,10 +38,10 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen px-4 py-8 md:px-8 bg-[#f3f0ea]">
-      <div className="w-[95%] max-w-[1800px] mx-auto grid grid-cols-1 xl:grid-cols-[4fr_6fr] lg:grid-cols-[3.5fr_6.5fr] gap-8 items-start pb-12">
+    <div className="min-h-screen px-4 py-6 md:px-8 md:py-10 bg-slate-50 text-slate-800 font-sans">
+      <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 items-start pb-12">
         
-        <aside className="lg:sticky lg:top-8 w-full z-10">
+        <aside className="w-full lg:w-[35%] lg:sticky lg:top-8 z-10 shrink-0">
           <ExpenseForm 
             key={editingExpense ? `edit-${editingExpense.id}` : 'new'}
             onSubmit={handleFormSubmit}
@@ -51,7 +51,7 @@ function App() {
           />
         </aside>
 
-        <main id="dashboard-exportable-area" className="flex flex-col gap-8 w-full">
+        <main id="dashboard-exportable-area" className="w-full lg:w-[65%] flex flex-col gap-6 xl:gap-8">
           <Header 
             currentDate={currentDate}
             nextMonth={nextMonth}
@@ -67,13 +67,15 @@ function App() {
             onDelete={deleteExpense}
           />
 
-          <ExpensesChart expenses={currentMonthExpenses} />
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-2">
+            <ExpensesChart expenses={currentMonthExpenses} />
+          </div>
         </main>
 
       </div>
 
-      <footer className="text-center mt-12 text-gray-500 font-bold">
-        Controle de Gastos © {new Date().getFullYear()} - Cuidando do seu dinheiro 💰
+      <footer className="text-center mt-8 text-slate-500 font-medium text-sm">
+        Controle de Gastos &copy; {new Date().getFullYear()} - Gerencie suas finanças com inteligência
       </footer>
     </div>
   );

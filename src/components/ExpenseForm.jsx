@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CATEGORIAS } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
+import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 
 export function ExpenseForm({ onSubmit, initialData = null, onCancel, currentDate }) {
   const getDefaultDate = () => {
@@ -21,7 +22,12 @@ export function ExpenseForm({ onSubmit, initialData = null, onCancel, currentDat
   const [categoria, setCategoria] = useState('');
   const [data, setData] = useState(getDefaultDate());
   const [descricao, setDescricao] = useState('');
+  
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const valorInputRef = useRef(null);
 
   useEffect(() => {
     if (initialData) {
@@ -34,9 +40,12 @@ export function ExpenseForm({ onSubmit, initialData = null, onCancel, currentDat
     }
   }, [initialData, currentDate]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setError('');
+    setSuccessMsg('');
 
     const parsedValor = parseFloat(valor.replace(',', '.'));
     if (isNaN(parsedValor) || parsedValor < 0.01) {
@@ -52,6 +61,8 @@ export function ExpenseForm({ onSubmit, initialData = null, onCancel, currentDat
       return;
     }
 
+    setIsSubmitting(true);
+
     const expense = {
       id: initialData ? initialData.id : uuidv4(),
       valor: parsedValor,
@@ -61,108 +72,168 @@ export function ExpenseForm({ onSubmit, initialData = null, onCancel, currentDat
       criadoEm: initialData ? initialData.criadoEm : new Date().toISOString(),
     };
 
+    // Simulate slight delay to prevent instant double-click and show loading
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     onSubmit(expense);
 
     if (!initialData) {
+      setSuccessMsg('Gasto registrado com sucesso!');
       setValor('');
       setCategoria('');
       setDescricao('');
       setData(getDefaultDate());
+      
+      if (valorInputRef.current) {
+        valorInputRef.current.focus();
+      }
+      
+      setTimeout(() => {
+        setSuccessMsg('');
+      }, 3000);
+    } else {
+      // For edit, the parent handles closing, but we format the message if it stays open
+      setSuccessMsg('Alterações salvas!');
+      setTimeout(() => setSuccessMsg(''), 3000);
     }
+
+    setIsSubmitting(false);
   };
 
-  const catColor = initialData && categoria && CATEGORIAS[categoria] 
-    ? CATEGORIAS[categoria].cor 
-    : '#f9fafb';
+  const isEditing = !!initialData;
+  const editingCatColor = (isEditing && categoria && CATEGORIAS[categoria]) ? CATEGORIAS[categoria].cor : null;
 
   return (
     <form 
       onSubmit={handleSubmit} 
-      className="p-6 md:p-8 border-4 border-black rounded-xl shadow-[8px_8px_0px_rgba(0,0,0,1)] rot-rand-3 mb-10 transition-colors duration-300 min-h-[75vh] flex flex-col justify-between"
-      style={{ backgroundColor: catColor }}
+      autoComplete="off"
+      className={`p-6 md:p-8 rounded-2xl transition-all duration-300 min-h-[60vh] flex flex-col justify-between relative overflow-hidden ${editingCatColor ? 'border-2 shadow-md' : 'bg-white shadow-sm border border-slate-200'}`}
+      style={{
+        backgroundColor: editingCatColor ? editingCatColor + '1A' : undefined,
+        borderColor: editingCatColor ? editingCatColor + '66' : undefined
+      }}
     >
-      <div>
-        <h2 className="text-3xl font-black mb-6 flex items-center gap-2 uppercase tracking-tight black-text-shadow">
-        {initialData ? '✏️ Editar Registro' : '📝 Novo Registro'}
-      </h2>
-
-      {error && (
-        <div className="bg-[#f472b6] text-black px-4 py-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_rgba(0,0,0,1)] mb-6 text-center rot-rand-4 font-black text-lg">
-          {error}
-        </div>
+      {editingCatColor ? (
+        <div className="absolute top-0 left-0 w-full h-1.5" style={{ backgroundColor: editingCatColor }}></div>
+      ) : (
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-teal-400"></div>
       )}
+      
+      <div>
+        <h2 className="text-2xl font-bold mb-6 text-slate-800 flex items-center gap-2">
+          {initialData ? '✏️ Editar Registro' : '📝 Novo Registro'}
+        </h2>
 
-      <div className="flex flex-col gap-6 flex-1">
-        <div className="flex flex-col gap-2">
-          <label className="font-black text-lg text-black uppercase tracking-wide">Valor (R$)</label>
-          <input
-            type="number"
-            step="0.01"
-            min="0.01"
-            value={valor}
-            onChange={(e) => setValor(e.target.value)}
-            className="border-2 border-black rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_rgba(0,0,0,1)] p-3 bg-white focus:outline-none transition-all text-xl font-bold text-black"
-            placeholder="0,00"
-          />
-        </div>
+        {error && (
+          <div className="bg-red-50 text-red-700 px-4 py-3 rounded-xl border border-red-100 mb-6 flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-top-2">
+            <AlertCircle size={18} className="shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
 
-        <div className="flex flex-col gap-2">
-          <label className="font-black text-lg text-black uppercase tracking-wide">Categoria</label>
-          <select
-            value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
-            className="border-2 border-black rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_rgba(0,0,0,1)] p-3 bg-white focus:outline-none transition-all text-lg font-bold text-black"
-          >
-            <option value="" disabled>Selecione uma categoria</option>
-            {Object.keys(CATEGORIAS).map(cat => (
-              <option key={cat} value={cat}>
-                {CATEGORIAS[cat].emoji} {cat}
-              </option>
-            ))}
-          </select>
-        </div>
+        {successMsg && (
+          <div className="bg-emerald-50 text-emerald-700 px-4 py-3 rounded-xl border border-emerald-100 mb-6 flex items-center gap-2 text-sm font-medium animate-in fade-in slide-in-from-top-2">
+            <CheckCircle2 size={18} className="shrink-0" />
+            <p>{successMsg}</p>
+          </div>
+        )}
 
-        <div className="flex flex-col gap-2">
-          <label className="font-black text-lg text-black uppercase tracking-wide">Data</label>
-          <input
-            type="date"
-            value={data}
-            onChange={(e) => setData(e.target.value)}
-            className="border-2 border-black rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_rgba(0,0,0,1)] p-3 bg-white focus:outline-none transition-all text-lg font-bold text-black"
-          />
-        </div>
+        <div className="flex flex-col gap-5 flex-1">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="expense_valor" className="font-semibold text-sm text-slate-600">Valor (R$)</label>
+            <input
+              id="expense_valor"
+              name="expense_valor_unique"
+              ref={valorInputRef}
+              type="number"
+              step="0.01"
+              min="0.01"
+              value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all text-slate-800 font-medium disabled:opacity-50"
+              placeholder="0,00"
+              autoComplete="off"
+            />
+          </div>
 
-        <div className="flex flex-col gap-2">
-          <label className="font-black text-lg text-black uppercase tracking-wide flex justify-between">
-            Descrição 
-            <span className="text-black/70 font-bold text-sm">({descricao.length}/100)</span>
-          </label>
-          <input
-            type="text"
-            maxLength={100}
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            className="border-2 border-black rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] focus:shadow-[4px_4px_0px_rgba(0,0,0,1)] p-3 bg-white focus:outline-none transition-all text-lg font-bold text-black"
-            placeholder="Ex: Almoço de domingo"
-          />
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="expense_categoria" className="font-semibold text-sm text-slate-600">Categoria</label>
+            <select
+              id="expense_categoria"
+              name="expense_categoria_unique"
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all text-slate-800 font-medium disabled:opacity-50"
+            >
+              <option value="" disabled>Selecione uma categoria</option>
+              {Object.keys(CATEGORIAS).map(cat => (
+                <option key={cat} value={cat}>
+                  {CATEGORIAS[cat].emoji} {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="expense_data" className="font-semibold text-sm text-slate-600">Data</label>
+            <input
+              id="expense_data"
+              name="expense_data_unique"
+              type="date"
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all text-slate-800 font-medium disabled:opacity-50"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="expense_descricao" className="font-semibold text-sm text-slate-600 flex justify-between">
+              Descrição
+              <span className="text-slate-400 font-normal text-xs">({descricao.length}/100)</span>
+            </label>
+            <input
+              id="expense_descricao"
+              name="expense_desc_unique"
+              type="text"
+              maxLength={100}
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              disabled={isSubmitting}
+              autoComplete="off"
+              data-form-type="other"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all text-slate-800 font-medium disabled:opacity-50"
+              placeholder="Ex: Almoço, Supermercado..."
+            />
+          </div>
         </div>
       </div>
-      </div>
 
-      <div className="mt-8 flex gap-4 flex-col lg:flex-row">
+      <div className="mt-8 flex gap-3 flex-col sm:flex-row">
         <button
           type="submit"
-          className="flex-1 bg-[#4ade80] text-black text-xl font-black py-4 border-4 border-black rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_rgba(0,0,0,1)] rot-rand-1 transition-all md:hover:-translate-y-1"
+          disabled={isSubmitting}
+          className="flex-1 bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold text-lg py-4 px-4 rounded-xl hover:from-blue-700 hover:to-blue-600 active:scale-[0.98] focus:ring-4 focus:ring-blue-200 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
         >
-          {initialData ? 'SALVAR ALTERAÇÕES' : '+ REGISTRAR'}
+          {isSubmitting ? (
+            <>
+              <Loader2 size={22} className="animate-spin" />
+              <span>Salvando...</span>
+            </>
+          ) : (
+            initialData ? 'Salvar Alterações' : '+ Registrar Gasto'
+          )}
         </button>
         {initialData && (
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 bg-gray-200 text-black text-xl font-black py-4 border-4 border-black rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_rgba(0,0,0,1)] rot-rand-4 transition-all md:hover:-translate-y-1"
+            disabled={isSubmitting}
+            className="flex-1 bg-slate-100 text-slate-700 font-bold text-lg py-4 px-4 rounded-xl shadow-sm hover:bg-slate-200 active:scale-[0.98] focus:ring-4 focus:ring-slate-200 transition-all disabled:opacity-50"
           >
-            CANCELAR
+            Cancelar
           </button>
         )}
       </div>

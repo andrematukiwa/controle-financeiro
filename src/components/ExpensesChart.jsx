@@ -11,25 +11,6 @@ import {
 } from 'recharts';
 import { CATEGORIAS } from '../constants';
 
-const BrutalistBar = (props) => {
-  const { fill, x, y, width, height } = props;
-  const safeFill = fill || '#000000';
-
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={safeFill}
-        stroke="#000"
-        strokeWidth="4"
-      />
-    </g>
-  );
-};
-
 export function ExpensesChart({ expenses }) {
   const data = useMemo(() => {
     const totals = {};
@@ -45,9 +26,9 @@ export function ExpensesChart({ expenses }) {
         name: cat,
         value: totals[cat],
         emoji: CATEGORIAS[cat]?.emoji || '📌',
-        color: CATEGORIAS[cat]?.cor || '#ccc',
+        color: CATEGORIAS[cat]?.cor || '#cbd5e1',
       }))
-      .sort((a, b) => b.value - a.value); // Order descending by value
+      .sort((a, b) => b.value - a.value);
   }, [expenses]);
 
   if (data.length === 0) return null;
@@ -56,11 +37,13 @@ export function ExpensesChart({ expenses }) {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-4 border-4 border-black shadow-[6px_6px_0px_rgba(0,0,0,1)]">
-          <p className="font-black text-xl mb-1 flex items-center gap-2 uppercase tracking-tight text-black">
+        <div 
+          style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', border: '1px solid #f1f5f9', minWidth: '150px' }}
+        >
+          <p style={{ fontWeight: 600, fontSize: '14px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px', color: '#334155' }}>
             {data.emoji} {data.name}
           </p>
-          <p className="text-2xl font-black text-[#4ade80]" style={{ textShadow: '2px 2px 0px rgba(0,0,0,1)' }}>
+          <p style={{ fontSize: '20px', fontWeight: 700, color: '#2563eb' }}>
             R$ {data.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </p>
         </div>
@@ -70,34 +53,47 @@ export function ExpensesChart({ expenses }) {
   };
 
   return (
-    <div id="expenses-chart" className="mt-12 bg-white p-6 md:p-8 border-4 border-black rounded-xl shadow-[8px_8px_0px_rgba(0,0,0,1)] rot-rand-2 mb-10">
-      <h3 className="text-3xl mb-8 text-center font-black uppercase tracking-tight text-black">
-        TOTAL POR CATEGORIA
+    <div id="expenses-chart" style={{ padding: '24px', backgroundColor: '#ffffff', minHeight: '400px' }}>
+      <h3 style={{ fontSize: '24px', marginBottom: '32px', fontWeight: 700, color: '#1e293b', textAlign: 'center', letterSpacing: '-0.025em' }}>
+        Total por Categoria
       </h3>
       <div className="h-[300px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-            <CartesianGrid strokeDasharray="0" vertical={false} stroke="#000" strokeWidth={2} opacity={0.1} />
+          <BarChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e2e8f0" />
             <XAxis 
               dataKey="name" 
-              tick={{ fill: '#000', fontSize: 16, fontWeight: '900', fontFamily: 'sans-serif' }}
-              tickFormatter={(value, index) => {
+              tick={{ fill: '#64748b', fontSize: 13, fontWeight: 500 }}
+              tickFormatter={(value) => {
                 const item = data.find(d => d.name === value);
-                return `${item ? item.emoji : ''} ${value.substring(0,3).toUpperCase()}`;
+                // Simplify to just the emoji for tight mobile fits, but on responsive this is fine
+                return `${item ? item.emoji : ''} ${value.substring(0,3)}`;
               }}
-              axisLine={{ stroke: '#000', strokeWidth: 4 }}
-              tickLine={{ stroke: '#000', strokeWidth: 4 }}
+              axisLine={false}
+              tickLine={false}
+              dy={10}
             />
             <YAxis 
-              tick={{ fill: '#000', fontSize: 16, fontWeight: '900', fontFamily: 'sans-serif' }}
+              tick={{ fill: '#64748b', fontSize: 13, fontWeight: 500 }}
               tickFormatter={(value) => `R$ ${value}`}
-              axisLine={{ stroke: '#000', strokeWidth: 4 }}
-              tickLine={{ stroke: '#000', strokeWidth: 4 }}
+              axisLine={false}
+              tickLine={false}
+              width={80}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.1)' }} />
-            <Bar dataKey="value" shape={<BrutalistBar />}>
+            <Tooltip 
+              content={<CustomTooltip />} 
+              cursor={false} 
+              position={{ y: -10 }}
+              isAnimationActive={false}
+            />
+            <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={60}>
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.color + '4D'} 
+                  stroke={entry.color}
+                  strokeWidth={2}
+                />
               ))}
             </Bar>
           </BarChart>

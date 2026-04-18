@@ -27,53 +27,58 @@ export function ExpenseList({ expenses, onEdit, onDelete }) {
   const sortedExpenses = [...expenses].sort((a, b) => new Date(b.data) - new Date(a.data));
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {sortedExpenses.map((expense, index) => {
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 xl:gap-6">
+      {sortedExpenses.map((expense) => {
         const catInfo = CATEGORIAS[expense.categoria] || { emoji: '📌', cor: '#E5E5E5' };
         const isDeleting = deletingId === expense.id;
-        const randomRotation = `rot-rand-${(index % 4) + 1}`;
 
         return (
           <div 
             key={expense.id}
-            className={`p-5 border-4 border-black rounded-xl shadow-[4px_4px_0px_rgba(0,0,0,1)] flex flex-col justify-between gap-4 transition-transform hover:-translate-y-1 hover:shadow-[6px_6px_0px_rgba(0,0,0,1)] ${isDeleting ? 'bg-red-100' : ''}`}
-            style={{ 
-              backgroundColor: isDeleting ? '#fef2f2' : catInfo.cor
+            className={`p-5 rounded-2xl border-2 flex flex-col justify-between gap-4 transition-all duration-200 hover:shadow-lg hover:-translate-y-1 ${isDeleting ? 'ring-4 ring-red-500 bg-red-100/80 border-red-500' : 'shadow-sm'}`}
+            style={{
+              backgroundColor: isDeleting ? '' : catInfo.cor + '4D', // 30% opacity para bem vivo
+              borderColor: isDeleting ? '' : catInfo.cor // Borda 100% sólida da cor
             }}
           >
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 bg-white border-2 border-black rounded-full shadow-[2px_2px_0px_rgba(0,0,0,1)] flex items-center justify-center text-3xl">
+                <div 
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shrink-0 shadow-sm"
+                  style={{ backgroundColor: catInfo.cor + '40', color: catInfo.cor }} // 40 is hex for 25% opacity
+                >
                   {catInfo.emoji}
                 </div>
                 <div>
-                  <h4 className="font-black text-xl text-black uppercase tracking-wide leading-none mb-1">{expense.categoria}</h4>
-                  <span className="text-sm font-bold text-black/70">
+                  <h4 className="font-bold text-slate-800 tracking-tight leading-tight mb-0.5">{expense.categoria}</h4>
+                  <span className="text-xs font-semibold text-slate-500">
                     {new Date(expense.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                   </span>
                 </div>
               </div>
 
               {!isDeleting && (
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <button 
                     onClick={() => onEdit(expense)}
-                    className="p-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-gray-100 transition-colors"
+                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-100"
+                    aria-label="Editar"
                   >
-                    <Edit2 size={18} strokeWidth={3} />
+                    <Edit2 size={18} strokeWidth={2.5} />
                   </button>
                   <button 
                     onClick={() => setDeletingId(expense.id)}
-                    className="p-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:bg-red-100 text-red-600 transition-colors"
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-100"
+                    aria-label="Apagar"
                   >
-                    <Trash2 size={18} strokeWidth={3} />
+                    <Trash2 size={18} strokeWidth={2.5} />
                   </button>
                 </div>
               )}
             </div>
 
             {expense.descricao && !isDeleting && (
-              <p className="text-black font-extrabold text-lg flex-1">
+              <p className="text-slate-600 font-medium text-sm flex-1 break-words">
                 {expense.descricao}
               </p>
             )}
@@ -81,27 +86,28 @@ export function ExpenseList({ expenses, onEdit, onDelete }) {
             <div className="mt-2">
               {!isDeleting ? (
                 <div className="text-right">
-                  <span className="text-3xl font-black text-black bg-white/50 px-3 py-1 rounded border-2 border-black">
-                    R$ {expense.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  <span className="text-2xl font-extrabold text-slate-800 tracking-tight">
+                    <span className="text-sm text-slate-400 font-semibold mr-1">R$</span>
+                    {expense.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               ) : (
-                <div className="flex flex-col gap-3 bg-white p-3 rounded border-2 border-black shadow-[2px_2px_0px_rgba(0,0,0,1)]">
-                   <div className="text-red-600 font-bold flex items-center gap-2 justify-center text-lg">
-                     <AlertTriangle size={20} strokeWidth={3} /> Apagar?
+                <div className="flex flex-col gap-3 bg-white p-3.5 rounded-xl border border-red-100 shadow-sm">
+                   <div className="text-red-600 font-semibold flex items-center gap-2 justify-center text-sm">
+                     <AlertTriangle size={18} strokeWidth={2.5} /> Deseja apagar?
                    </div>
                    <div className="flex gap-2">
                      <button 
                        onClick={() => setDeletingId(null)}
-                       className="flex-1 px-3 py-2 bg-gray-200 text-black font-black border-2 border-black rounded hover:bg-gray-300 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                       className="flex-1 px-3 py-2 bg-slate-100 text-slate-700 font-semibold rounded-lg hover:bg-slate-200 transition-colors text-sm"
                      >
                        Não
                      </button>
                      <button 
                        onClick={() => onDelete(expense.id)}
-                       className="flex-1 px-3 py-2 bg-red-400 text-white font-black border-2 border-black rounded hover:bg-red-500 shadow-[2px_2px_0px_rgba(0,0,0,1)]"
+                       className="flex-1 px-3 py-2 bg-red-500 text-white font-semibold rounded-lg hover:bg-red-600 transition-colors text-sm"
                      >
-                       Sim
+                       Sim, Apagar
                      </button>
                    </div>
                 </div>

@@ -1,45 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-sketch-bg: #FFFDF7;
-  --color-sketch-blue: #A8C8E8;
-  --color-sketch-green: #A8D8A8;
-  --color-sketch-orange: #F4C89A;
-  --color-sketch-pink: #F4A8C8;
-  --color-sketch-yellow: #F4E8A8;
-  --color-sketch-purple: #C8A8E8;
-  --color-sketch-brown: #D8C8B8;
-}
-
-@layer utilities {
-  .border-sketch {
-    border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
-    border: 2px solid #333;
-  }
-  .border-sketch-sm {
-    border-radius: 20px 25px 20px 25px / 25px 20px 25px 20px;
-    border: 2px solid #333;
-  }
-  
-  .shadow-sketch {
-    box-shadow: 3px 3px 0px rgba(0,0,0,0.15);
-  }
-  .shadow-sketch-sm {
-    box-shadow: 2px 2px 0px rgba(0,0,0,0.15);
-  }
-  
-  .rot-rand-1 { transform: rotate(0.1deg); }
-  .rot-rand-2 { transform: rotate(-0.1deg); }
-  .rot-rand-3 { transform: rotate(0.2deg); }
-  .rot-rand-4 { transform: rotate(-0.2deg); }
+  --color-brand-bg: #f8fafc;
+  --color-brand-primary: #3b82f6;
+  --color-brand-secondary: #10b981;
 }
 
 body {
-  font-family: Arial, sans-serif;
-  color: #111;
+  font-family: 'Inter', sans-serif;
+  color: #1e293b;
+  background-color: var(--color-brand-bg);
+  -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: Arial, sans-serif;
+  font-family: 'Inter', sans-serif;
 }
-

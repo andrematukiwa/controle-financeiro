@@ -43,46 +43,62 @@ export const exportDashboardToPDF = async (month, year, total, expenses) => {
         body: tableRows,
         startY: 40,
         theme: 'grid',
-        headStyles: { fillColor: [168, 200, 232], textColor: 20 }, // Sketch blue
+        headStyles: { fillColor: [59, 130, 246], textColor: 255 }, // Cores mais vivas (Azul 500 Tailwind)
         alternateRowStyles: { fillColor: [250, 250, 250] },
         styles: { font: 'helvetica', fontSize: 10 },
         margin: { top: 40 }
       });
       
-      finalY = pdf.lastAutoTable.finalY + 15;
+      finalY = (pdf.lastAutoTable && pdf.lastAutoTable.finalY) ? pdf.lastAutoTable.finalY + 15 : 40 + (tableRows.length * 10) + 15;
     } else {
       pdf.setFontSize(12);
       pdf.text("Nenhum gasto registrado neste mês.", 14, 45);
       finalY = 60;
     }
 
-    // Capturar e anexar o gráfico (se existir e estiver renderizado na tela)
-    const chartElement = document.getElementById('expenses-chart');
-    if (chartElement) {
-      // Evitar que o gráfico passe para a próxima página e quebre
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      if (finalY > pageHeight - 80) {
+    // Tabela de Resumo por Categorias
+    if (expenses && expenses.length > 0) {
+      const totalsByCategory = expenses.reduce((acc, exp) => {
+        if (!acc[exp.categoria]) acc[exp.categoria] = 0;
+        acc[exp.categoria] += exp.valor;
+        return acc;
+      }, {});
+
+      const summaryRows = Object.keys(totalsByCategory)
+        .map(cat => ({
+          categoria: cat,
+          valor: totalsByCategory[cat]
+        }))
+        .sort((a, b) => b.valor - a.valor)
+        .map(item => [
+          item.categoria,
+          `R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+        ]);
+
+      // Verificar se vai precisar quebrar a página
+      if (finalY > pdf.internal.pageSize.getHeight() - 60) {
         pdf.addPage();
         finalY = 20;
       }
 
       pdf.setFontSize(14);
-      pdf.text("Resumo por Categoria:", 14, finalY);
-      
-      const canvas = await html2canvas(chartElement, {
-        scale: 2,
-        backgroundColor: '#FFFDF7',
-        logging: false,
+      pdf.text("Resumo por Categoria", 14, finalY + 5);
+
+      autoTable(pdf, {
+        head: [["Categoria", "Valor Total"]],
+        body: summaryRows,
+        startY: finalY + 10,
+        theme: 'grid',
+        headStyles: { fillColor: [37, 99, 235], textColor: 255 }, // Blue 600 do tailwind para mais vivo
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        styles: { font: 'helvetica', fontSize: 10 },
       });
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const imgWidth = pdfWidth - 28; // margem de 14mm em cada lado
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      pdf.addImage(imgData, 'PNG', 14, finalY + 5, imgWidth, imgHeight);
+      finalY = (pdf.lastAutoTable && pdf.lastAutoTable.finalY) ? pdf.lastAutoTable.finalY + 15 : finalY + 50 + (summaryRows.length * 10);
     }
-    
+
+    // Salvar diretamente após desenhar as tabelas, removendo a dependência do html2canvas 
+    // que não possui parser para OKLCH do Tailwind v4.
     const safeMonthName = monthName.toLowerCase().replace('ç', 'c');
     pdf.save(`gastos-${safeMonthName}-${year}.pdf`);
   } catch (error) {
