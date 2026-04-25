@@ -40,6 +40,8 @@ function App() {
     return true;
   });
 
+  const filteredTotal = filteredExpenses.reduce((acc, exp) => acc + exp.valor, 0);
+
   const handleFormSubmit = (expense) => {
     if (editingExpense) {
       editExpense(editingExpense.id, expense);
@@ -83,11 +85,18 @@ function App() {
           />
           
           <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-center justify-between transition-all">
-            <div className="flex items-center gap-2 text-slate-700 font-bold w-full sm:w-auto tracking-tight">
+            <div className="flex items-center gap-3 text-slate-700 font-bold w-full sm:w-auto tracking-tight">
               <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
                 <Filter size={18} strokeWidth={2.5} />
               </div>
-              Filtros
+              <div className="flex flex-col">
+                <span>Filtros</span>
+                {(categoryFilter || dayFilter) && (
+                  <span className="text-xs font-semibold text-slate-500 mt-0.5">
+                    Total: <span className="text-blue-600 font-extrabold">R$ {filteredTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </span>
+                )}
+              </div>
             </div>
             
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto flex-1 justify-end">
