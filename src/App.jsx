@@ -4,6 +4,8 @@ import { Header } from './components/Header';
 import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseList } from './components/ExpenseList';
 import { ExpensesChart } from './components/ExpensesChart';
+import { CATEGORIAS } from './constants';
+import { Filter } from 'lucide-react';
 
 function App() {
   const {
@@ -18,6 +20,25 @@ function App() {
   } = useExpenses();
 
   const [editingExpense, setEditingExpense] = useState(null);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [dayFilter, setDayFilter] = useState('');
+
+  // Reset filters when month changes
+  React.useEffect(() => {
+    setCategoryFilter('');
+    setDayFilter('');
+  }, [currentDate]);
+
+  const uniqueDays = [...new Set(currentMonthExpenses.map(exp => exp.data.split('-')[2]))].sort();
+
+  const filteredExpenses = currentMonthExpenses.filter(exp => {
+    if (categoryFilter && exp.categoria !== categoryFilter) return false;
+    if (dayFilter) {
+      const expDay = exp.data.split('-')[2];
+      if (expDay !== dayFilter) return false;
+    }
+    return true;
+  });
 
   const handleFormSubmit = (expense) => {
     if (editingExpense) {
@@ -61,14 +82,49 @@ function App() {
             expenses={currentMonthExpenses}
           />
           
+          <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-center justify-between transition-all">
+            <div className="flex items-center gap-2 text-slate-700 font-bold w-full sm:w-auto tracking-tight">
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <Filter size={18} strokeWidth={2.5} />
+              </div>
+              Filtros
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto flex-1 justify-end">
+              <select 
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-semibold text-sm w-full sm:w-auto cursor-pointer shadow-sm appearance-none"
+                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.25rem', paddingRight: '2.5rem' }}
+              >
+                <option value="">Todas as Categorias</option>
+                {Object.keys(CATEGORIAS).map(cat => (
+                  <option key={cat} value={cat}>{CATEGORIAS[cat].emoji} {cat}</option>
+                ))}
+              </select>
+
+              <select
+                value={dayFilter}
+                onChange={(e) => setDayFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-semibold text-sm w-full sm:w-auto cursor-pointer shadow-sm appearance-none"
+                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.25rem', paddingRight: '2.5rem' }}
+              >
+                <option value="">Todos os Dias</option>
+                {uniqueDays.map(day => (
+                  <option key={day} value={day}>Dia {day}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          
           <ExpenseList 
-            expenses={currentMonthExpenses}
+            expenses={filteredExpenses}
             onEdit={handleEdit}
             onDelete={deleteExpense}
           />
 
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-2">
-            <ExpensesChart expenses={currentMonthExpenses} />
+            <ExpensesChart expenses={filteredExpenses} />
           </div>
         </main>
 
