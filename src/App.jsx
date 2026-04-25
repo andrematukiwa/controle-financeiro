@@ -5,7 +5,7 @@ import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseList } from './components/ExpenseList';
 import { ExpensesChart } from './components/ExpensesChart';
 import { CATEGORIAS } from './constants';
-import { Filter } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 
 function App() {
   const {
@@ -123,6 +123,20 @@ function App() {
                   <option key={day} value={day}>Dia {day}</option>
                 ))}
               </select>
+
+              {(categoryFilter || dayFilter) && (
+                <button 
+                  onClick={() => {
+                    setCategoryFilter('');
+                    setDayFilter('');
+                  }}
+                  className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-200 shadow-sm flex items-center justify-center shrink-0"
+                  aria-label="Limpar Filtros"
+                  title="Limpar Filtros"
+                >
+                  <X size={20} strokeWidth={2.5} />
+                </button>
+              )}
             </div>
           </div>
           
