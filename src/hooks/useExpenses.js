@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = '@gastos-mensais:expenses';
+const OVERRIDES_KEY = '@gastos-mensais:overrides';
+
+function monthKeyFor(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
 
 export function useExpenses() {
   const [expenses, setExpenses] = useState(() => {
@@ -10,6 +15,16 @@ export function useExpenses() {
     } catch (e) {
       console.error('Failed to load expenses from storage', e);
       return [];
+    }
+  });
+
+  const [overrides, setOverrides] = useState(() => {
+    try {
+      const stored = localStorage.getItem(OVERRIDES_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch (e) {
+      console.error('Failed to load overrides from storage', e);
+      return {};
     }
   });
 
@@ -24,8 +39,20 @@ export function useExpenses() {
     }
   }, [expenses]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
+    } catch (e) {
+      console.warn('Storage bloqueado ou cheio', e);
+    }
+  }, [overrides]);
+
   const addExpense = useCallback((expense) => {
     setExpenses((prev) => [...prev, expense]);
+  }, []);
+
+  const addExpenses = useCallback((newExpenses) => {
+    setExpenses((prev) => [...prev, ...newExpenses]);
   }, []);
 
   const editExpense = useCallback((id, updatedExpense) => {
@@ -46,22 +73,90 @@ export function useExpenses() {
 
   // Filter expenses by current month and year
   const currentMonthExpenses = expenses.filter((exp) => {
-    const expDate = new Date(exp.data);
-    // Considering the string is YYYY-MM-DD, the parsing using new Date()
-    // might resolve to UTC, which could cause timezone shifts.
-    // It's safer to extract parts if it's YYYY-MM-DD
     const [year, month] = exp.data.split('-').map(Number);
     return year === currentDate.getFullYear() && month === currentDate.getMonth() + 1;
   });
 
-  const monthTotal = currentMonthExpenses.reduce((acc, curr) => acc + curr.valor, 0);
+  const sumByTipo = (list, tipo) => list
+    .filter((exp) => (tipo === 'entrada' ? exp.tipo === 'entrada' : exp.tipo !== 'entrada'))
+    .reduce((acc, curr) => acc + curr.valor, 0);
+
+  const resolveMonthTotals = (date, monthExpenses) => {
+    const key = monthKeyFor(date);
+    const override = overrides[key] || {};
+    const computedSaidas = sumByTipo(monthExpenses, 'saida');
+    const computedEntradas = sumByTipo(monthExpenses, 'entrada');
+    return {
+      saidas: override.saidas != null ? override.saidas : computedSaidas,
+      entradas: override.entradas != null ? override.entradas : computedEntradas,
+      saidasOverrideActive: override.saidas != null,
+      entradasOverrideActive: override.entradas != null,
+    };
+  };
+
+  // Itens sem "tipo" são gastos legados (fatura/manual) e contam como saída.
+  const currentMonthKey = monthKeyFor(currentDate);
+  const currentTotals = resolveMonthTotals(currentDate, currentMonthExpenses);
+
+  const monthTotal = currentTotals.saidas;
+  const monthEntradas = currentTotals.entradas;
+  const saidasOverrideActive = currentTotals.saidasOverrideActive;
+  const entradasOverrideActive = currentTotals.entradasOverrideActive;
+
+  const prevMonthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+  const prevMonthExpenses = expenses.filter((exp) => {
+    const [year, month] = exp.data.split('-').map(Number);
+    return year === prevMonthDate.getFullYear() && month === prevMonthDate.getMonth() + 1;
+  });
+  const prevTotals = resolveMonthTotals(prevMonthDate, prevMonthExpenses);
+
+  const pctChange = (atual, anterior) => {
+    if (!anterior) return null;
+    return ((atual - anterior) / anterior) * 100;
+  };
+
+  const saidasTrend = pctChange(monthTotal, prevTotals.saidas);
+  const entradasTrend = pctChange(monthEntradas, prevTotals.entradas);
+  const monthSaldo = monthEntradas - monthTotal;
+  const prevSaldo = prevTotals.entradas - prevTotals.saidas;
+  const saldoTrend = pctChange(monthSaldo, prevSaldo);
+
+  const saidasCount = currentMonthExpenses.filter((exp) => exp.tipo !== 'entrada').length;
+  const entradasCount = currentMonthExpenses.filter((exp) => exp.tipo === 'entrada').length;
+
+  const setSaidasOverride = useCallback((valor) => {
+    setOverrides((prev) => ({
+      ...prev,
+      [currentMonthKey]: { ...prev[currentMonthKey], saidas: valor },
+    }));
+  }, [currentMonthKey]);
+
+  const setEntradasOverride = useCallback((valor) => {
+    setOverrides((prev) => ({
+      ...prev,
+      [currentMonthKey]: { ...prev[currentMonthKey], entradas: valor },
+    }));
+  }, [currentMonthKey]);
 
   return {
     expenses,
     currentDate,
     currentMonthExpenses,
     monthTotal,
+    monthEntradas,
+    monthSaldo,
+    prevSaldo,
+    saidasTrend,
+    entradasTrend,
+    saldoTrend,
+    saidasCount,
+    entradasCount,
+    saidasOverrideActive,
+    entradasOverrideActive,
+    setSaidasOverride,
+    setEntradasOverride,
     addExpense,
+    addExpenses,
     editExpense,
     deleteExpense,
     nextMonth,

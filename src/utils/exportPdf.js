@@ -1,104 +1,121 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import html2canvas from 'html2canvas';
 
-export const exportDashboardToPDF = async (month, year, total, expenses) => {
+const formatMoeda = (valor) => valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function desenharTabelaLancamentos(pdf, titulo, itens, startY, headColor) {
+  pdf.setFontSize(13);
+  pdf.setTextColor(30, 41, 59);
+  pdf.text(titulo, 14, startY);
+
+  const sortedItens = [...itens].sort((a, b) => new Date(b.data) - new Date(a.data));
+  const rows = sortedItens.map((item) => [
+    new Date(item.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
+    item.categoria,
+    formatMoeda(item.valor),
+    item.descricao || '-',
+  ]);
+
+  autoTable(pdf, {
+    head: [['Data', 'Categoria', 'Valor (R$)', 'Descrição']],
+    body: rows,
+    startY: startY + 4,
+    theme: 'grid',
+    headStyles: { fillColor: headColor, textColor: 255 },
+    alternateRowStyles: { fillColor: [250, 250, 250] },
+    styles: { font: 'helvetica', fontSize: 9 },
+  });
+
+  return pdf.lastAutoTable.finalY;
+}
+
+function desenharResumoPorCategoria(pdf, titulo, itens, startY, headColor) {
+  const totalsByCategory = itens.reduce((acc, item) => {
+    if (!acc[item.categoria]) acc[item.categoria] = 0;
+    acc[item.categoria] += item.valor;
+    return acc;
+  }, {});
+
+  const rows = Object.entries(totalsByCategory)
+    .sort((a, b) => b[1] - a[1])
+    .map(([categoria, valor]) => [categoria, `R$ ${formatMoeda(valor)}`]);
+
+  pdf.setFontSize(12);
+  pdf.setTextColor(30, 41, 59);
+  pdf.text(titulo, 14, startY);
+
+  autoTable(pdf, {
+    head: [['Categoria', 'Valor Total']],
+    body: rows,
+    startY: startY + 4,
+    theme: 'grid',
+    headStyles: { fillColor: headColor, textColor: 255 },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    styles: { font: 'helvetica', fontSize: 9 },
+  });
+
+  return pdf.lastAutoTable.finalY;
+}
+
+function garantirEspaco(pdf, finalY, espacoNecessario = 50) {
+  if (finalY > pdf.internal.pageSize.getHeight() - espacoNecessario) {
+    pdf.addPage();
+    return 20;
+  }
+  return finalY;
+}
+
+export const exportDashboardToPDF = (month, year, totalSaidas, totalEntradas, expenses) => {
   try {
     const pdf = new jsPDF('p', 'mm', 'a4');
-    
+
     const monthNames = [
       'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
     ];
     const monthName = monthNames[month];
-    
-    // Título e Header
-    pdf.setFontSize(22);
-    pdf.text(`Controle de Gastos - ${monthName} de ${year}`, 14, 20);
-    
-    // Total
-    pdf.setFontSize(16);
-    pdf.text(`Total do Mês: R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 14, 30);
-    
-    let finalY = 40;
+    const saldo = totalEntradas - totalSaidas;
 
-    // Tabela de Gastos
-    if (expenses && expenses.length > 0) {
-      const tableColumn = ["Data", "Categoria", "Valor (R$)", "Descrição"];
-      
-      // Ordenar por data
-      const sortedExpenses = [...expenses].sort((a, b) => new Date(b.data) - new Date(a.data));
-      
-      const tableRows = sortedExpenses.map(exp => {
-        return [
-          new Date(exp.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' }),
-          exp.categoria,
-          exp.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-          exp.descricao || '-'
-        ];
-      });
+    const saidas = (expenses || []).filter((exp) => exp.tipo !== 'entrada');
+    const entradas = (expenses || []).filter((exp) => exp.tipo === 'entrada');
 
-      autoTable(pdf, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: 40,
-        theme: 'grid',
-        headStyles: { fillColor: [59, 130, 246], textColor: 255 }, // Cores mais vivas (Azul 500 Tailwind)
-        alternateRowStyles: { fillColor: [250, 250, 250] },
-        styles: { font: 'helvetica', fontSize: 10 },
-        margin: { top: 40 }
-      });
-      
-      finalY = (pdf.lastAutoTable && pdf.lastAutoTable.finalY) ? pdf.lastAutoTable.finalY + 15 : 40 + (tableRows.length * 10) + 15;
-    } else {
+    // Título
+    pdf.setFontSize(20);
+    pdf.setTextColor(30, 41, 59);
+    pdf.text(`Controle Financeiro - ${monthName} de ${year}`, 14, 18);
+
+    // Resumo: Entradas / Saídas / Saldo
+    pdf.setFontSize(11);
+    pdf.setTextColor(5, 150, 105);
+    pdf.text(`Entradas: +R$ ${formatMoeda(totalEntradas)}`, 14, 28);
+    pdf.setTextColor(37, 99, 235);
+    pdf.text(`Saídas: R$ ${formatMoeda(totalSaidas)}`, 90, 28);
+    pdf.setTextColor(saldo >= 0 ? 5 : 220, saldo >= 0 ? 150 : 38, saldo >= 0 ? 105 : 38);
+    pdf.text(`Saldo: ${saldo >= 0 ? '+' : '-'}R$ ${formatMoeda(Math.abs(saldo))}`, 160, 28);
+
+    let finalY = 38;
+
+    if (saidas.length > 0) {
+      finalY = desenharTabelaLancamentos(pdf, 'Saídas', saidas, finalY, [37, 99, 235]);
+      finalY += 8;
+      finalY = garantirEspaco(pdf, finalY);
+      finalY = desenharResumoPorCategoria(pdf, 'Resumo de Saídas por Categoria', saidas, finalY, [37, 99, 235]) + 12;
+    }
+
+    if (entradas.length > 0) {
+      finalY = garantirEspaco(pdf, finalY);
+      finalY = desenharTabelaLancamentos(pdf, 'Entradas', entradas, finalY, [5, 150, 105]);
+      finalY += 8;
+      finalY = garantirEspaco(pdf, finalY);
+      desenharResumoPorCategoria(pdf, 'Resumo de Entradas por Categoria', entradas, finalY, [5, 150, 105]);
+    }
+
+    if (saidas.length === 0 && entradas.length === 0) {
       pdf.setFontSize(12);
-      pdf.text("Nenhum gasto registrado neste mês.", 14, 45);
-      finalY = 60;
+      pdf.setTextColor(100, 116, 139);
+      pdf.text('Nenhum lançamento registrado neste mês.', 14, finalY + 5);
     }
 
-    // Tabela de Resumo por Categorias
-    if (expenses && expenses.length > 0) {
-      const totalsByCategory = expenses.reduce((acc, exp) => {
-        if (!acc[exp.categoria]) acc[exp.categoria] = 0;
-        acc[exp.categoria] += exp.valor;
-        return acc;
-      }, {});
-
-      const summaryRows = Object.keys(totalsByCategory)
-        .map(cat => ({
-          categoria: cat,
-          valor: totalsByCategory[cat]
-        }))
-        .sort((a, b) => b.valor - a.valor)
-        .map(item => [
-          item.categoria,
-          `R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-        ]);
-
-      // Verificar se vai precisar quebrar a página
-      if (finalY > pdf.internal.pageSize.getHeight() - 60) {
-        pdf.addPage();
-        finalY = 20;
-      }
-
-      pdf.setFontSize(14);
-      pdf.text("Resumo por Categoria", 14, finalY + 5);
-
-      autoTable(pdf, {
-        head: [["Categoria", "Valor Total"]],
-        body: summaryRows,
-        startY: finalY + 10,
-        theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], textColor: 255 }, // Blue 600 do tailwind para mais vivo
-        alternateRowStyles: { fillColor: [248, 250, 252] },
-        styles: { font: 'helvetica', fontSize: 10 },
-      });
-
-      finalY = (pdf.lastAutoTable && pdf.lastAutoTable.finalY) ? pdf.lastAutoTable.finalY + 15 : finalY + 50 + (summaryRows.length * 10);
-    }
-
-    // Salvar diretamente após desenhar as tabelas, removendo a dependência do html2canvas 
-    // que não possui parser para OKLCH do Tailwind v4.
     const safeMonthName = monthName.toLowerCase().replace('ç', 'c');
     pdf.save(`gastos-${safeMonthName}-${year}.pdf`);
   } catch (error) {
