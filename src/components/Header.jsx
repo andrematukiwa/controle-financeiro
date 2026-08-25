@@ -124,7 +124,7 @@ export function Header({
   total, entradas, saldo,
   saidasCount, entradasCount,
   saidasOverrideActive, entradasOverrideActive, onSaidasOverride, onEntradasOverride,
-  expenses, onImportClick, importLoading,
+  expenses, duplicatasPagamentoFatura, onImportClick, importLoading,
 }) {
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -132,7 +132,7 @@ export function Header({
   ];
 
   const handleExport = () => {
-    exportDashboardToPDF(currentDate.getMonth(), currentDate.getFullYear(), total, entradas, expenses);
+    exportDashboardToPDF(currentDate.getMonth(), currentDate.getFullYear(), total, entradas, expenses, duplicatasPagamentoFatura);
   };
 
   return (

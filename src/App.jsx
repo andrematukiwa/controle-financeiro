@@ -14,6 +14,7 @@ function App() {
     expenses,
     currentDate,
     currentMonthExpenses,
+    duplicatasPagamentoFatura,
     monthTotal,
     monthEntradas,
     monthSaldo,
@@ -154,6 +155,7 @@ function App() {
             onSaidasOverride={setSaidasOverride}
             onEntradasOverride={setEntradasOverride}
             expenses={currentMonthExpenses}
+            duplicatasPagamentoFatura={duplicatasPagamentoFatura}
             onImportClick={handleImportClick}
             importLoading={importLoading}
           />
@@ -226,6 +228,7 @@ function App() {
             expenses={filteredExpenses}
             onEdit={handleEdit}
             onDelete={deleteExpense}
+            duplicatasPagamentoFatura={duplicatasPagamentoFatura}
           />
 
           <div className="bg-white rounded-[18px] shadow-[0_4px_16px_rgba(15,23,42,0.04)] border border-[#E5EAF2] overflow-hidden mt-2">

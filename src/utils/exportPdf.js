@@ -65,7 +65,7 @@ function garantirEspaco(pdf, finalY, espacoNecessario = 50) {
   return finalY;
 }
 
-export const exportDashboardToPDF = (month, year, totalSaidas, totalEntradas, expenses) => {
+export const exportDashboardToPDF = (month, year, totalSaidas, totalEntradas, expenses, duplicatasPagamentoFatura) => {
   try {
     const pdf = new jsPDF('p', 'mm', 'a4');
 
@@ -75,9 +75,13 @@ export const exportDashboardToPDF = (month, year, totalSaidas, totalEntradas, ex
     ];
     const monthName = monthNames[month];
     const saldo = totalEntradas - totalSaidas;
+    const duplicatas = duplicatasPagamentoFatura || new Set();
 
-    const saidas = (expenses || []).filter((exp) => exp.tipo !== 'entrada');
+    // "Pagamento de fatura" do extrato que já bate com uma fatura importada não entra
+    // aqui — o gasto já está detalhado item a item na tabela de compras da fatura.
+    const saidas = (expenses || []).filter((exp) => exp.tipo !== 'entrada' && !duplicatas.has(exp.id));
     const entradas = (expenses || []).filter((exp) => exp.tipo === 'entrada');
+    const totalExcluidas = duplicatas.size;
 
     // Título
     pdf.setFontSize(20);
@@ -94,6 +98,14 @@ export const exportDashboardToPDF = (month, year, totalSaidas, totalEntradas, ex
     pdf.text(`Saldo: ${saldo >= 0 ? '+' : '-'}R$ ${formatMoeda(Math.abs(saldo))}`, 160, 28);
 
     let finalY = 38;
+
+    if (totalExcluidas > 0) {
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      const plural = totalExcluidas > 1 ? 'pagamentos de fatura já contabilizados' : 'pagamento de fatura já contabilizado';
+      pdf.text(`* ${totalExcluidas} ${plural} nas compras detalhadas da fatura não estão listados abaixo, para não contar o gasto duas vezes.`, 14, 34);
+      finalY = 40;
+    }
 
     if (saidas.length > 0) {
       finalY = desenharTabelaLancamentos(pdf, 'Saídas', saidas, finalY, [37, 99, 235]);

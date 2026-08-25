@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CATEGORIAS, CATEGORIAS_ENTRADA } from '../constants';
-import { Edit2, Trash2, AlertTriangle, MoreVertical, Calendar } from 'lucide-react';
+import { Edit2, Trash2, AlertTriangle, MoreVertical, Calendar, Receipt } from 'lucide-react';
 
 function CardMenu({ onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +45,7 @@ function CardMenu({ onEdit, onDelete }) {
   );
 }
 
-export function ExpenseList({ expenses, onEdit, onDelete }) {
+export function ExpenseList({ expenses, onEdit, onDelete, duplicatasPagamentoFatura }) {
   const [deletingId, setDeletingId] = useState(null);
 
   if (expenses.length === 0) {
@@ -76,12 +76,17 @@ export function ExpenseList({ expenses, onEdit, onDelete }) {
         const categoriaMap = isEntrada ? CATEGORIAS_ENTRADA : CATEGORIAS;
         const catInfo = categoriaMap[expense.categoria] || { emoji: '📌', cor: '#94a3b8' };
         const isDeleting = deletingId === expense.id;
+        const isDuplicado = duplicatasPagamentoFatura?.has(expense.id);
 
         return (
           <div
             key={expense.id}
             className={`relative rounded-[18px] bg-white border border-l-[5px] p-4 flex flex-col gap-2.5 transition-all duration-200 hover:shadow-[0_18px_45px_rgba(15,23,42,0.10)] hover:-translate-y-[3px] ${
-              isDeleting ? 'border-red-300 ring-2 ring-red-200 shadow-[0_4px_16px_rgba(15,23,42,0.04)]' : 'border-[#E5EAF2] shadow-[0_4px_16px_rgba(15,23,42,0.04)]'
+              isDeleting
+                ? 'border-red-300 ring-2 ring-red-200 shadow-[0_4px_16px_rgba(15,23,42,0.04)]'
+                : isDuplicado
+                ? 'border-slate-200 opacity-60 shadow-none'
+                : 'border-[#E5EAF2] shadow-[0_4px_16px_rgba(15,23,42,0.04)]'
             }`}
             style={{ borderLeftColor: isDeleting ? undefined : catInfo.cor }}
           >
@@ -103,6 +108,15 @@ export function ExpenseList({ expenses, onEdit, onDelete }) {
               <p className="text-sm text-slate-500 break-words leading-snug pl-[46px] -mt-1.5">
                 {expense.descricao}
               </p>
+            )}
+
+            {isDuplicado && !isDeleting && (
+              <span
+                className="flex items-center gap-1 text-amber-600 text-xs font-semibold pl-[46px] -mt-1"
+                title="O valor bate com a fatura desse mês já importada — não entra no total pra não contar o gasto duas vezes"
+              >
+                <Receipt size={12} /> Já contabilizado na fatura, não soma no total
+              </span>
             )}
 
             {!isDeleting ? (
