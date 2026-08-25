@@ -1,16 +1,43 @@
-# React + Vite
+# Controle Financeiro
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação web para controle de gastos e receitas pessoais, com importação automática de faturas e extratos do Nubank em PDF.
 
-Currently, two official plugins are available:
+🔗 **App em produção:** https://controle-financeiro-rho-teal.vercel.app
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Funcionalidades
 
-## React Compiler
+- **Registro de entradas e saídas** — cadastro manual com categoria, data e descrição.
+- **Importação de PDF do Nubank** — envie a fatura do cartão ou o extrato da conta e o app identifica automaticamente qual dos dois é, extrai as transações e sugere a categoria de cada uma.
+- **Conciliação automática** — quando a fatura e o extrato do mesmo mês são importados, o pagamento da fatura que aparece no extrato não é somado de novo como gasto, evitando contar o mesmo dinheiro duas vezes.
+- **Categorias** — gastos (Mercado, Transporte, Alimentação, Pix, Fatura Cartão, etc.) e entradas (Salário, Transferência, Reembolso) com cores e ícones próprios.
+- **Dashboard** — total de saídas, entradas e saldo do mês, com variação percentual em relação ao mês anterior.
+- **Filtros** — por tipo (entrada/saída), categoria e dia.
+- **Exportação de relatório em PDF** — resumo do mês com lançamentos e totais por categoria.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Stack
 
-## Expanding the ESLint configuration
+- [React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [pdfjs-dist](https://mozilla.github.io/pdf.js/) — leitura dos PDFs importados
+- [jsPDF](https://github.com/parallax/jsPDF) + [jspdf-autotable](https://github.com/simonbengtsson/jsPDF-AutoTable) — geração do relatório em PDF
+- [Recharts](https://recharts.org/) — gráfico de gastos por categoria
+- [Lucide React](https://lucide.dev/) — ícones
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Rodando localmente
+
+```bash
+npm install
+npm run dev
+```
+
+Outros scripts:
+
+```bash
+npm run build    # build de produção
+npm run lint     # checagem de lint
+npm run preview  # preview do build de produção
+```
+
+## Dados
+
+Os lançamentos ficam salvos no `localStorage` do navegador — não há backend nem banco de dados.
