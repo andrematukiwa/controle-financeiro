@@ -1,18 +1,33 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useExpenses } from './hooks/useExpenses';
 import { Header } from './components/Header';
 import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseList } from './components/ExpenseList';
 import { ExpensesChart } from './components/ExpensesChart';
+import { ImportPdfModal } from './components/ImportPdfModal';
 import { CATEGORIAS } from './constants';
-import { Filter, X } from 'lucide-react';
+import { Filter, RotateCcw, Sparkles, BarChart3, X } from 'lucide-react';
+import { parseNubankPdf } from './utils/parseNubankPdf';
 
 function App() {
   const {
+    expenses,
     currentDate,
     currentMonthExpenses,
     monthTotal,
+    monthEntradas,
+    monthSaldo,
+    saidasTrend,
+    entradasTrend,
+    saldoTrend,
+    saidasCount,
+    entradasCount,
+    saidasOverrideActive,
+    entradasOverrideActive,
+    setSaidasOverride,
+    setEntradasOverride,
     addExpense,
+    addExpenses,
     editExpense,
     deleteExpense,
     nextMonth,
@@ -22,17 +37,25 @@ function App() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [dayFilter, setDayFilter] = useState('');
+  const [tipoFilter, setTipoFilter] = useState('');
+
+  const fileInputRef = useRef(null);
+  const [importCandidates, setImportCandidates] = useState(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState('');
 
   // Reset filters when month changes
   React.useEffect(() => {
     setCategoryFilter('');
     setDayFilter('');
+    setTipoFilter('');
   }, [currentDate]);
 
   const uniqueDays = [...new Set(currentMonthExpenses.map(exp => exp.data.split('-')[2]))].sort();
 
   const filteredExpenses = currentMonthExpenses.filter(exp => {
     if (categoryFilter && exp.categoria !== categoryFilter) return false;
+    if (tipoFilter && (exp.tipo === 'entrada' ? 'entrada' : 'saida') !== tipoFilter) return false;
     if (dayFilter) {
       const expDay = exp.data.split('-')[2];
       if (expDay !== dayFilter) return false;
@@ -40,7 +63,7 @@ function App() {
     return true;
   });
 
-  const filteredTotal = filteredExpenses.reduce((acc, exp) => acc + exp.valor, 0);
+  const hasActiveFilters = categoryFilter || dayFilter || tipoFilter;
 
   const handleFormSubmit = (expense) => {
     if (editingExpense) {
@@ -60,10 +83,41 @@ function App() {
     setEditingExpense(null);
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setImportError('');
+    setImportLoading(true);
+    try {
+      const items = await parseNubankPdf(file);
+      if (items.length === 0) {
+        setImportError('Não foi possível encontrar transações nesse PDF. Confira se é uma fatura ou extrato do Nubank.');
+      } else {
+        setImportCandidates(items);
+      }
+    } catch (err) {
+      console.error('Erro ao importar PDF', err);
+      setImportError(err.message || 'Erro ao ler o PDF. Confira se o arquivo não está corrompido.');
+    } finally {
+      setImportLoading(false);
+    }
+  };
+
+  const handleConfirmImport = (expensesToAdd) => {
+    addExpenses(expensesToAdd);
+    setImportCandidates(null);
+  };
+
   return (
-    <div className="min-h-screen px-4 py-6 md:px-8 md:py-10 bg-slate-50 text-slate-800 font-sans">
-      <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-8 items-start pb-12">
-        
+    <div className="min-h-screen px-4 py-6 md:px-8 md:py-10 bg-[#F4F7FB] text-slate-800 font-sans">
+      <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 items-start pb-12">
+
         <aside className="w-full lg:w-[35%] lg:sticky lg:top-8 z-10 shrink-0">
           <ExpenseForm 
             key={editingExpense ? `edit-${editingExpense.id}` : 'new'}
@@ -74,80 +128,124 @@ function App() {
           />
         </aside>
 
-        <main id="dashboard-exportable-area" className="w-full lg:w-[65%] flex flex-col gap-6 xl:gap-8">
-          <Header 
+        <main id="dashboard-exportable-area" className="w-full lg:w-[65%] flex flex-col gap-5">
+          <input
+            type="file"
+            accept="application/pdf"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+          />
+
+          <Header
             currentDate={currentDate}
             nextMonth={nextMonth}
             prevMonth={prevMonth}
             total={monthTotal}
-            count={currentMonthExpenses.length}
+            entradas={monthEntradas}
+            saldo={monthSaldo}
+            saidasTrend={saidasTrend}
+            entradasTrend={entradasTrend}
+            saldoTrend={saldoTrend}
+            saidasCount={saidasCount}
+            entradasCount={entradasCount}
+            saidasOverrideActive={saidasOverrideActive}
+            entradasOverrideActive={entradasOverrideActive}
+            onSaidasOverride={setSaidasOverride}
+            onEntradasOverride={setEntradasOverride}
             expenses={currentMonthExpenses}
+            onImportClick={handleImportClick}
+            importLoading={importLoading}
           />
-          
-          <div className="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4 items-center justify-between transition-all">
-            <div className="flex items-center gap-3 text-slate-700 font-bold w-full sm:w-auto tracking-tight">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                <Filter size={18} strokeWidth={2.5} />
-              </div>
-              <div className="flex flex-col">
-                <span>Filtros</span>
-                {(categoryFilter || dayFilter) && (
-                  <span className="text-xs font-semibold text-slate-500 mt-0.5">
-                    Total: <span className="text-blue-600 font-extrabold">R$ {filteredTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto flex-1 justify-end">
-              <select 
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-semibold text-sm w-full sm:w-auto cursor-pointer shadow-sm appearance-none"
-                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.25rem', paddingRight: '2.5rem' }}
-              >
-                <option value="">Todas as Categorias</option>
-                {Object.keys(CATEGORIAS).map(cat => (
-                  <option key={cat} value={cat}>{CATEGORIAS[cat].emoji} {cat}</option>
-                ))}
-              </select>
 
-              <select
-                value={dayFilter}
-                onChange={(e) => setDayFilter(e.target.value)}
-                className="bg-slate-50 border border-slate-200 text-slate-700 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all font-semibold text-sm w-full sm:w-auto cursor-pointer shadow-sm appearance-none"
-                style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.75rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.25rem', paddingRight: '2.5rem' }}
-              >
-                <option value="">Todos os Dias</option>
-                {uniqueDays.map(day => (
-                  <option key={day} value={day}>Dia {day}</option>
-                ))}
-              </select>
-
-              {(categoryFilter || dayFilter) && (
-                <button 
-                  onClick={() => {
-                    setCategoryFilter('');
-                    setDayFilter('');
-                  }}
-                  className="p-2.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-red-200 shadow-sm flex items-center justify-center shrink-0"
-                  aria-label="Limpar Filtros"
-                  title="Limpar Filtros"
-                >
-                  <X size={20} strokeWidth={2.5} />
-                </button>
-              )}
+          {importError && (
+            <div className="bg-red-50 text-red-700 px-4 py-3 rounded-xl border border-red-100 flex items-center justify-between gap-3 text-sm font-medium">
+              <span>{importError}</span>
+              <button onClick={() => setImportError('')} className="text-red-400 hover:text-red-600 shrink-0" aria-label="Fechar aviso">
+                <X size={18} />
+              </button>
             </div>
+          )}
+
+          <div className="bg-white p-3 rounded-[18px] shadow-[0_4px_16px_rgba(15,23,42,0.04)] border border-[#E5EAF2] flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center gap-1.5 text-slate-500 pl-1 shrink-0">
+              <Filter size={16} strokeWidth={2.5} />
+              <span className="text-sm font-semibold">Filtros</span>
+            </div>
+
+            <select
+              value={tipoFilter}
+              onChange={(e) => setTipoFilter(e.target.value)}
+              className="h-10 bg-[#F4F7FB] border border-[#E5EAF2] text-slate-700 rounded-[12px] px-3 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium text-sm cursor-pointer appearance-none"
+              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.6rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.1rem', paddingRight: '2.25rem' }}
+            >
+              <option value="">Entradas e Saídas</option>
+              <option value="saida">Só Saídas</option>
+              <option value="entrada">Só Entradas</option>
+            </select>
+
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="h-10 bg-[#F4F7FB] border border-[#E5EAF2] text-slate-700 rounded-[12px] px-3 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium text-sm cursor-pointer appearance-none"
+              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.6rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.1rem', paddingRight: '2.25rem' }}
+            >
+              <option value="">Todas as Categorias</option>
+              {Object.keys(CATEGORIAS).map(cat => (
+                <option key={cat} value={cat}>{CATEGORIAS[cat].emoji} {cat}</option>
+              ))}
+            </select>
+
+            <select
+              value={dayFilter}
+              onChange={(e) => setDayFilter(e.target.value)}
+              className="h-10 bg-[#F4F7FB] border border-[#E5EAF2] text-slate-700 rounded-[12px] px-3 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium text-sm cursor-pointer appearance-none"
+              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.6rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.1rem', paddingRight: '2.25rem' }}
+            >
+              <option value="">Todos os Dias</option>
+              {uniqueDays.map(day => (
+                <option key={day} value={day}>Dia {day}</option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => {
+                setCategoryFilter('');
+                setDayFilter('');
+                setTipoFilter('');
+              }}
+              disabled={!hasActiveFilters}
+              className="ml-auto flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:text-slate-300 disabled:cursor-default transition-colors px-2"
+            >
+              <RotateCcw size={14} strokeWidth={2.5} />
+              Limpar filtros
+            </button>
           </div>
-          
-          <ExpenseList 
+
+          <ExpenseList
             expenses={filteredExpenses}
             onEdit={handleEdit}
             onDelete={deleteExpense}
           />
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mt-2">
+          <div className="bg-white rounded-[18px] shadow-[0_4px_16px_rgba(15,23,42,0.04)] border border-[#E5EAF2] overflow-hidden mt-2">
             <ExpensesChart expenses={filteredExpenses} />
+          </div>
+
+          <div className="bg-violet-50 border border-violet-100 rounded-[18px] px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-center sm:text-left">
+              <Sparkles size={20} className="text-violet-500 shrink-0" strokeWidth={2.25} />
+              <p className="text-sm text-slate-600">
+                <span className="font-bold text-slate-800">Continue assim!</span> Você está no caminho certo para uma vida financeira saudável.
+              </p>
+            </div>
+            <button
+              onClick={() => document.getElementById('expenses-chart')?.scrollIntoView({ behavior: 'smooth' })}
+              className="flex items-center gap-2 bg-white text-violet-700 border border-violet-200 hover:bg-violet-100 transition-colors px-4 h-10 rounded-[12px] font-semibold text-sm shrink-0"
+            >
+              <BarChart3 size={16} strokeWidth={2.5} />
+              Ver Relatórios
+            </button>
           </div>
         </main>
 
@@ -156,6 +254,15 @@ function App() {
       <footer className="text-center mt-8 text-slate-500 font-medium text-sm">
         Controle de Gastos &copy; {new Date().getFullYear()} - Gerencie suas finanças com inteligência
       </footer>
+
+      {importCandidates && (
+        <ImportPdfModal
+          parsedItems={importCandidates}
+          existingExpenses={expenses}
+          onConfirm={handleConfirmImport}
+          onClose={() => setImportCandidates(null)}
+        />
+      )}
     </div>
   );
 }

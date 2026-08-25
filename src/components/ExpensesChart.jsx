@@ -14,12 +14,14 @@ import { CATEGORIAS } from '../constants';
 export function ExpensesChart({ expenses }) {
   const data = useMemo(() => {
     const totals = {};
-    expenses.forEach((expense) => {
-      if (!totals[expense.categoria]) {
-        totals[expense.categoria] = 0;
-      }
-      totals[expense.categoria] += expense.valor;
-    });
+    expenses
+      .filter((expense) => expense.tipo !== 'entrada')
+      .forEach((expense) => {
+        if (!totals[expense.categoria]) {
+          totals[expense.categoria] = 0;
+        }
+        totals[expense.categoria] += expense.valor;
+      });
 
     return Object.keys(totals)
       .map(cat => ({
@@ -53,8 +55,8 @@ export function ExpensesChart({ expenses }) {
   };
 
   return (
-    <div id="expenses-chart" style={{ padding: '24px', backgroundColor: '#ffffff', minHeight: '400px' }}>
-      <h3 style={{ fontSize: '24px', marginBottom: '32px', fontWeight: 700, color: '#1e293b', textAlign: 'center', letterSpacing: '-0.025em' }}>
+    <div id="expenses-chart" style={{ padding: '20px', backgroundColor: '#ffffff', minHeight: '360px' }}>
+      <h3 style={{ fontSize: '18px', marginBottom: '20px', fontWeight: 600, color: '#1e293b', textAlign: 'center', letterSpacing: '-0.025em' }}>
         Total por Categoria
       </h3>
       <div className="h-[300px] w-full">
