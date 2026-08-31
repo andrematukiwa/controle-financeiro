@@ -67,6 +67,11 @@ export function parseFaturaLines(lines) {
       categoria: guessCategoria(descricao),
       tipo: 'saida',
       origem: 'fatura',
+      // Identifica a qual fatura (documento) essa compra pertence — o período de uma
+      // fatura quase sempre cruza dois meses (ex: 28 JUL a 28 AGO), então agrupar o
+      // total pelo mês de cada compra individual (em vez de por fatura) subestima o
+      // valor total na hora de conciliar com o pagamento no extrato.
+      faturaVencimento: `${dueYear}-${String(dueMonth + 1).padStart(2, '0')}`,
     });
   }
 

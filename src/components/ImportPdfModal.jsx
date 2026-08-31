@@ -23,26 +23,32 @@ function isDuplicate(item, existingExpenses) {
 
 const PAGAMENTO_FATURA_RE = /pagamento de fatura/i;
 
+// O pagamento raramente bate centavo a centavo com o total "de compras" da fatura —
+// sobra/falta um resíduo de saldo anterior, arredondamento etc. Tolerância relativa ao
+// tamanho da fatura (3%), com piso de R$5 pra faturas pequenas.
+const TOLERANCIA_RELATIVA = 0.03;
+const TOLERANCIA_MINIMA = 5;
+
 // Um "Pagamento de fatura" no extrato é o mesmo dinheiro que já entrou como gasto
-// individual quando a fatura daquele mês foi importada — contar os dois duplicaria o valor.
-// Só concilia quando o valor bate exatamente com o total de alguma fatura já importada;
-// pagamentos parciais/rotativo não têm como ser conciliados automaticamente.
+// individual quando a fatura correspondente foi importada — contar os dois duplicaria
+// o valor. Agrupa por fatura (mês de vencimento), não pelo mês de cada compra — o
+// período de uma fatura quase sempre cruza dois meses (ex: 28 JUL a 28 AGO).
 function encontrarFaturaConciliada(item, existingExpenses) {
   if (item.tipo === 'entrada') return null;
   if (!PAGAMENTO_FATURA_RE.test(item.descricao)) return null;
 
-  const totaisPorMes = {};
+  const totaisPorFatura = {};
   existingExpenses
     .filter((exp) => exp.origem === 'fatura')
     .forEach((exp) => {
-      const mesAno = exp.data.slice(0, 7);
-      totaisPorMes[mesAno] = (totaisPorMes[mesAno] || 0) + exp.valor;
+      const chave = exp.faturaVencimento || exp.data.slice(0, 7);
+      totaisPorFatura[chave] = (totaisPorFatura[chave] || 0) + exp.valor;
     });
 
-  const TOLERANCIA = 0.01;
-  const encontrado = Object.entries(totaisPorMes).find(
-    ([, total]) => Math.abs(total - item.valor) < TOLERANCIA
-  );
+  const encontrado = Object.entries(totaisPorFatura).find(([, total]) => {
+    const tolerancia = Math.max(TOLERANCIA_MINIMA, total * TOLERANCIA_RELATIVA);
+    return Math.abs(total - item.valor) <= tolerancia;
+  });
 
   return encontrado ? { mesAno: encontrado[0], valor: encontrado[1] } : null;
 }

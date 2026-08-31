@@ -7,32 +7,43 @@ function monthKeyFor(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-const TOLERANCIA_CONCILIACAO = 0.01;
+// O pagamento raramente bate centavo a centavo com o total "de compras" da fatura —
+// sobra/falta um resíduo de saldo anterior, arredondamento etc. Uma fatura de ~R$2.750
+// já teve um resíduo de R$6+ num caso real, então a tolerância é relativa ao tamanho
+// da fatura (3%), com um piso de R$5 pra faturas pequenas.
+const TOLERANCIA_RELATIVA = 0.03;
+const TOLERANCIA_MINIMA = 5;
 
-// Soma, por mês, o total de tudo que veio de uma fatura importada.
-function calcularFaturaTotaisPorMes(todasDespesas) {
+// Soma o total de tudo que veio de cada fatura importada, agrupado pela fatura em si
+// (identificada pelo mês de vencimento), não pelo mês de cada compra individual — o
+// período de uma fatura quase sempre cruza dois meses civis (ex: 28 JUL a 28 AGO),
+// então agrupar por mês de compra subestimaria o valor total dela.
+// Itens salvos antes dessa marcação existir (sem faturaVencimento) caem de volta no
+// mês da própria compra, mantendo o comportamento antigo pra dados já importados.
+function calcularFaturaTotaisPorFatura(todasDespesas) {
   const totais = {};
   todasDespesas
     .filter((exp) => exp.origem === 'fatura')
     .forEach((exp) => {
-      const mesAno = exp.data.slice(0, 7);
-      totais[mesAno] = (totais[mesAno] || 0) + exp.valor;
+      const chave = exp.faturaVencimento || exp.data.slice(0, 7);
+      totais[chave] = (totais[chave] || 0) + exp.valor;
     });
   return totais;
 }
 
 // Um "Pagamento de fatura" do extrato é o mesmo dinheiro que já entrou como gasto
-// individual quando a fatura daquele mês foi importada — contar os dois duplicaria
+// individual quando a fatura correspondente foi importada — contar os dois duplicaria
 // o valor. Isso é recalculado sempre (não só no momento da importação), então não
 // depende da ordem em que fatura/extrato foram importados nem de checkbox marcado
 // por engano.
-function ehPagamentoFaturaDuplicado(exp, faturaTotaisPorMes) {
+function ehPagamentoFaturaDuplicado(exp, faturaTotaisPorFatura) {
   if (exp.tipo === 'entrada') return false;
   if (exp.origem !== 'extrato') return false;
   if (exp.categoria !== 'Fatura Cartão') return false;
-  const totalFatura = faturaTotaisPorMes[exp.data.slice(0, 7)];
-  if (totalFatura == null) return false;
-  return Math.abs(totalFatura - exp.valor) < TOLERANCIA_CONCILIACAO;
+  return Object.values(faturaTotaisPorFatura).some((totalFatura) => {
+    const tolerancia = Math.max(TOLERANCIA_MINIMA, totalFatura * TOLERANCIA_RELATIVA);
+    return Math.abs(totalFatura - exp.valor) <= tolerancia;
+  });
 }
 
 export function useExpenses() {
@@ -105,9 +116,9 @@ export function useExpenses() {
     return year === currentDate.getFullYear() && month === currentDate.getMonth() + 1;
   });
 
-  const faturaTotaisPorMes = calcularFaturaTotaisPorMes(expenses);
+  const faturaTotaisPorFatura = calcularFaturaTotaisPorFatura(expenses);
   const duplicatasPagamentoFatura = new Set(
-    expenses.filter((exp) => ehPagamentoFaturaDuplicado(exp, faturaTotaisPorMes)).map((exp) => exp.id)
+    expenses.filter((exp) => ehPagamentoFaturaDuplicado(exp, faturaTotaisPorFatura)).map((exp) => exp.id)
   );
 
   const sumByTipo = (list, tipo) => list
