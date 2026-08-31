@@ -17,7 +17,7 @@ const THEMES = {
   },
 };
 
-function StatCard({ theme, title, value, sign, Icon, count, overrideActive, onOverride }) {
+function StatCard({ theme, title, value, sign, Icon, count, overrideActive, onOverride, highlight }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
 
@@ -37,15 +37,15 @@ function StatCard({ theme, title, value, sign, Icon, count, overrideActive, onOv
 
   return (
     <div
-      className="group rounded-2xl p-4 shadow-sm flex items-center gap-3 h-full"
+      className={`group rounded-2xl p-4 shadow-sm flex items-center gap-3 h-full min-w-0 ${highlight ? 'ring-2 ring-blue-200 shadow-md' : ''}`}
       style={{ backgroundColor: theme.bg }}
     >
       <div
-        className="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
+        className={`rounded-full flex items-center justify-center shrink-0 ${highlight ? 'h-11 w-11' : 'h-10 w-10'}`}
         style={{ backgroundColor: theme.iconBg, color: theme.icon }}
         aria-hidden="true"
       >
-        <Icon size={18} strokeWidth={2.5} />
+        <Icon size={highlight ? 19 : 18} strokeWidth={2.5} />
       </div>
 
       <div className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -100,7 +100,7 @@ function StatCard({ theme, title, value, sign, Icon, count, overrideActive, onOv
           </div>
         ) : (
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="whitespace-nowrap" style={{ fontSize: 26, fontWeight: 800, lineHeight: 1.2, color: theme.valueColor }}>
+            <span style={{ fontSize: highlight ? 27 : 26, fontWeight: 800, lineHeight: 1.2, color: theme.valueColor, wordBreak: 'break-word' }}>
               {sign}R$ {formatMoeda(value)}
             </span>
             {overrideActive && (
@@ -142,36 +142,6 @@ export function Header({
 
   return (
     <div className="w-full flex flex-col gap-4">
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          theme={THEMES.saidas}
-          title="Saídas"
-          value={total}
-          sign=""
-          Icon={ArrowDownLeft}
-          count={saidasCount}
-          overrideActive={saidasOverrideActive}
-          onOverride={onSaidasOverride}
-        />
-        <StatCard
-          theme={THEMES.entradas}
-          title="Entradas"
-          value={entradas}
-          sign="+ "
-          Icon={ArrowUpRight}
-          count={entradasCount}
-          overrideActive={entradasOverrideActive}
-          onOverride={onEntradasOverride}
-        />
-        <StatCard
-          theme={THEMES.saldo}
-          title="Saldo do Mês"
-          value={saldo}
-          sign={saldo < 0 ? '- ' : '+ '}
-          Icon={Wallet}
-        />
-      </div>
-
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="flex items-center gap-1.5 bg-white border border-[#E5EAF2] rounded-[14px] p-1.5 shadow-sm shrink-0">
           <button
@@ -223,6 +193,37 @@ export function Header({
             <span>{exporting ? 'Gerando PDF...' : 'Exportar PDF'}</span>
           </button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard
+          theme={THEMES.saidas}
+          title="Saídas"
+          value={total}
+          sign=""
+          Icon={ArrowDownLeft}
+          count={saidasCount}
+          overrideActive={saidasOverrideActive}
+          onOverride={onSaidasOverride}
+        />
+        <StatCard
+          theme={THEMES.entradas}
+          title="Entradas"
+          value={entradas}
+          sign="+ "
+          Icon={ArrowUpRight}
+          count={entradasCount}
+          overrideActive={entradasOverrideActive}
+          onOverride={onEntradasOverride}
+        />
+        <StatCard
+          theme={THEMES.saldo}
+          title="Saldo do Mês"
+          value={saldo}
+          sign={saldo < 0 ? '- ' : '+ '}
+          Icon={Wallet}
+          highlight
+        />
       </div>
     </div>
   );

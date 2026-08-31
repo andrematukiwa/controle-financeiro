@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CATEGORIAS, CATEGORIAS_ENTRADA } from '../constants';
-import { Edit2, Trash2, AlertTriangle, MoreVertical, Calendar, Receipt } from 'lucide-react';
+import { Edit2, Trash2, AlertTriangle, MoreVertical, Calendar, Receipt, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
+
+const INITIAL_VISIBLE_ITEMS = 6;
 
 function CardMenu({ onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -48,6 +50,7 @@ function CardMenu({ onEdit, onDelete }) {
 
 export function ExpenseList({ expenses, onEdit, onDelete, duplicatasPagamentoFatura }) {
   const [deletingId, setDeletingId] = useState(null);
+  const [showAll, setShowAll] = useState(false);
 
   if (expenses.length === 0) {
     return (
@@ -69,17 +72,19 @@ export function ExpenseList({ expenses, onEdit, onDelete, duplicatasPagamentoFat
 
   // Sort by date (newest first)
   const sortedExpenses = [...expenses].sort((a, b) => new Date(b.data) - new Date(a.data));
+  const hasMore = sortedExpenses.length > INITIAL_VISIBLE_ITEMS;
+  // Só fatia a visualização — a lista completa (ordenação, valores, filtros) não muda.
+  // Enquanto "Mostrar menos" está ativo, os cards extras nem chegam a ser renderizados.
+  const visibleExpenses = showAll ? sortedExpenses : sortedExpenses.slice(0, INITIAL_VISIBLE_ITEMS);
 
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
-      {sortedExpenses.map((expense) => {
-        const isEntrada = expense.tipo === 'entrada';
-        const categoriaMap = isEntrada ? CATEGORIAS_ENTRADA : CATEGORIAS;
-        const catInfo = categoriaMap[expense.categoria] || { emoji: '📌', cor: '#94a3b8' };
-        const isDeleting = deletingId === expense.id;
-        const isDuplicado = duplicatasPagamentoFatura?.has(expense.id);
+  const renderCard = (expense) => {
+    const isEntrada = expense.tipo === 'entrada';
+    const categoriaMap = isEntrada ? CATEGORIAS_ENTRADA : CATEGORIAS;
+    const catInfo = categoriaMap[expense.categoria] || { emoji: '📌', cor: '#94a3b8' };
+    const isDeleting = deletingId === expense.id;
+    const isDuplicado = duplicatasPagamentoFatura?.has(expense.id);
 
-        return (
+    return (
           <div
             key={expense.id}
             className={`relative rounded-[18px] bg-white border border-l-[5px] p-4 flex flex-col gap-2.5 transition-all duration-200 hover:shadow-[0_18px_45px_rgba(15,23,42,0.10)] hover:-translate-y-[3px] ${
@@ -158,7 +163,37 @@ export function ExpenseList({ expenses, onEdit, onDelete, duplicatasPagamentoFat
             )}
           </div>
         );
-      })}
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between px-1">
+        <h3 className="text-base font-bold text-slate-800">Lançamentos</h3>
+        <span className="text-xs font-semibold text-slate-400">
+          {sortedExpenses.length} {sortedExpenses.length === 1 ? 'registro' : 'registros'}
+        </span>
+      </div>
+
+      {/* Só 2 colunas no máximo: a partir de xl a lista divide espaço com o gráfico fixo
+          ao lado (ver App.jsx), então 3 colunas ficariam apertadas demais. */}
+      <div key={showAll ? 'expanded' : 'collapsed'} className="grid grid-cols-1 sm:grid-cols-2 gap-5 fade-in-up">
+        {visibleExpenses.map(renderCard)}
+      </div>
+
+      {hasMore && (
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          aria-expanded={showAll}
+          className="self-center flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 px-4 h-10 rounded-[12px] transition-colors"
+        >
+          {showAll ? (
+            <>Mostrar menos <ChevronUp size={16} strokeWidth={2.5} /></>
+          ) : (
+            <>Mostrar mais ({sortedExpenses.length - INITIAL_VISIBLE_ITEMS}) <ChevronDown size={16} strokeWidth={2.5} /></>
+          )}
+        </button>
+      )}
     </div>
   );
 }

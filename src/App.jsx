@@ -3,13 +3,11 @@ import { useExpenses } from './hooks/useExpenses';
 import { Header } from './components/Header';
 import { ExpenseForm } from './components/ExpenseForm';
 import { ExpenseList } from './components/ExpenseList';
-import { ExpensesChart } from './components/ExpensesChart';
+import { ChartSection } from './components/ChartSection';
+import { FilterBar } from './components/FilterBar';
+import { MobileTransactionForm } from './components/MobileTransactionForm';
 import { ImportPdfModal } from './components/ImportPdfModal';
-import { CATEGORIAS } from './constants';
-import { Filter, RotateCcw, Sparkles, BarChart3, X } from 'lucide-react';
-
-const SELECT_CLASS = "h-10 bg-[#F4F7FB] border border-[#E5EAF2] text-slate-700 rounded-[12px] px-3 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium text-sm cursor-pointer appearance-none";
-const SELECT_ARROW_STYLE = { backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.6rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.1rem', paddingRight: '2.25rem' };
+import { Sparkles, BarChart3, X, Plus } from 'lucide-react';
 
 function App() {
   const {
@@ -38,6 +36,7 @@ function App() {
   } = useExpenses();
 
   const [editingExpense, setEditingExpense] = useState(null);
+  const [mobileFormOpen, setMobileFormOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [dayFilter, setDayFilter] = useState('');
   const [tipoFilter, setTipoFilter] = useState('');
@@ -75,15 +74,18 @@ function App() {
     } else {
       addExpense(expense);
     }
+    setMobileFormOpen(false);
   };
 
   const handleEdit = (expense) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setEditingExpense(expense);
+    setMobileFormOpen(true);
   };
 
   const handleCancelEdit = () => {
     setEditingExpense(null);
+    setMobileFormOpen(false);
   };
 
   const handleImportClick = () => {
@@ -124,8 +126,9 @@ function App() {
     <div className="min-h-screen px-4 py-6 md:px-8 md:py-10 bg-[#F4F7FB] text-slate-800 font-sans">
       <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 items-start pb-12">
 
-        <aside className="w-full lg:w-[35%] lg:sticky lg:top-8 z-10 shrink-0">
-          <ExpenseForm 
+        {/* Desktop: formulário fixo na lateral. No mobile ele vira um bottom sheet (abaixo). */}
+        <aside className="hidden lg:block w-full lg:w-[35%] lg:sticky lg:top-8 z-10 shrink-0">
+          <ExpenseForm
             key={editingExpense ? `edit-${editingExpense.id}` : 'new'}
             onSubmit={handleFormSubmit}
             initialData={editingExpense}
@@ -174,73 +177,42 @@ function App() {
             </div>
           )}
 
-          <div className="bg-white p-3 rounded-[18px] shadow-[0_4px_16px_rgba(15,23,42,0.04)] border border-[#E5EAF2] flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-1.5 text-slate-500 pl-1 shrink-0">
-              <Filter size={16} strokeWidth={2.5} />
-              <span className="text-sm font-semibold">Filtros</span>
-            </div>
+          <button
+            type="button"
+            onClick={() => setMobileFormOpen(true)}
+            className="lg:hidden w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-violet-600 text-white font-semibold rounded-[16px] shadow-[0_8px_20px_rgba(37,99,235,0.25)] active:scale-[0.98] transition-all"
+          >
+            <Plus size={18} strokeWidth={2.5} />
+            Novo Lançamento
+          </button>
 
-            <select
-              aria-label="Filtrar por tipo"
-              value={tipoFilter}
-              onChange={(e) => setTipoFilter(e.target.value)}
-              className={SELECT_CLASS}
-              style={SELECT_ARROW_STYLE}
-            >
-              <option value="">Entradas e Saídas</option>
-              <option value="saida">Só Saídas</option>
-              <option value="entrada">Só Entradas</option>
-            </select>
-
-            <select
-              aria-label="Filtrar por categoria"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className={SELECT_CLASS}
-              style={SELECT_ARROW_STYLE}
-            >
-              <option value="">Todas as Categorias</option>
-              {Object.keys(CATEGORIAS).map(cat => (
-                <option key={cat} value={cat}>{CATEGORIAS[cat].emoji} {cat}</option>
-              ))}
-            </select>
-
-            <select
-              aria-label="Filtrar por dia"
-              value={dayFilter}
-              onChange={(e) => setDayFilter(e.target.value)}
-              className={SELECT_CLASS}
-              style={SELECT_ARROW_STYLE}
-            >
-              <option value="">Todos os Dias</option>
-              {uniqueDays.map(day => (
-                <option key={day} value={day}>Dia {day}</option>
-              ))}
-            </select>
-
-            <button
-              onClick={() => {
-                setCategoryFilter('');
-                setDayFilter('');
-                setTipoFilter('');
-              }}
-              disabled={!hasActiveFilters}
-              className="ml-auto flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700 disabled:text-slate-300 disabled:cursor-default transition-colors px-2"
-            >
-              <RotateCcw size={14} strokeWidth={2.5} />
-              Limpar filtros
-            </button>
-          </div>
-
-          <ExpenseList
-            expenses={filteredExpenses}
-            onEdit={handleEdit}
-            onDelete={deleteExpense}
-            duplicatasPagamentoFatura={duplicatasPagamentoFatura}
+          <FilterBar
+            tipoFilter={tipoFilter}
+            setTipoFilter={setTipoFilter}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            dayFilter={dayFilter}
+            setDayFilter={setDayFilter}
+            uniqueDays={uniqueDays}
+            hasActiveFilters={hasActiveFilters}
+            onClear={() => {
+              setCategoryFilter('');
+              setDayFilter('');
+              setTipoFilter('');
+            }}
           />
 
-          <div className="bg-white rounded-[18px] shadow-[0_4px_16px_rgba(15,23,42,0.04)] border border-[#E5EAF2] overflow-hidden mt-2">
-            <ExpensesChart expenses={filteredExpenses} />
+          {/* Desktop (xl+): lançamentos à esquerda, análise fixa (sticky) à direita.
+              Abaixo de xl: uma coluna só, lançamentos antes do gráfico. */}
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5 items-start">
+            <ExpenseList
+              expenses={filteredExpenses}
+              onEdit={handleEdit}
+              onDelete={deleteExpense}
+              duplicatasPagamentoFatura={duplicatasPagamentoFatura}
+            />
+
+            <ChartSection expenses={filteredExpenses} />
           </div>
 
           <div className="bg-violet-50 border border-violet-100 rounded-[18px] px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -273,6 +245,18 @@ function App() {
           onConfirm={handleConfirmImport}
           onClose={() => setImportCandidates(null)}
         />
+      )}
+
+      {mobileFormOpen && (
+        <MobileTransactionForm onClose={handleCancelEdit}>
+          <ExpenseForm
+            key={editingExpense ? `edit-${editingExpense.id}` : 'new'}
+            onSubmit={handleFormSubmit}
+            initialData={editingExpense}
+            onCancel={handleCancelEdit}
+            currentDate={currentDate}
+          />
+        </MobileTransactionForm>
       )}
     </div>
   );
