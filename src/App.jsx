@@ -126,8 +126,9 @@ function App() {
     <div className="min-h-screen px-4 py-6 md:px-8 md:py-10 bg-[#F4F7FB] text-slate-800 font-sans">
       <div className="w-full max-w-7xl mx-auto flex flex-col lg:flex-row gap-6 items-start pb-12">
 
-        {/* Desktop: formulário fixo na lateral. No mobile ele vira um bottom sheet (abaixo). */}
-        <aside className="hidden lg:block w-full lg:w-[35%] lg:sticky lg:top-8 z-10 shrink-0">
+        {/* Desktop: formulário fixo na lateral, largura própria (não percentual) para não
+            espremer o dashboard. No mobile ele vira um bottom sheet (abaixo). */}
+        <aside className="hidden lg:block w-full lg:w-[420px] xl:sticky xl:top-6 z-10 shrink-0">
           <ExpenseForm
             key={editingExpense ? `edit-${editingExpense.id}` : 'new'}
             onSubmit={handleFormSubmit}
@@ -137,7 +138,7 @@ function App() {
           />
         </aside>
 
-        <main id="dashboard-exportable-area" className="w-full lg:w-[65%] flex flex-col gap-5">
+        <main id="dashboard-exportable-area" className="w-full flex-1 min-w-0 flex flex-col gap-5">
           <input
             type="file"
             accept="application/pdf"
@@ -202,18 +203,16 @@ function App() {
             }}
           />
 
-          {/* Desktop (xl+): lançamentos à esquerda, análise fixa (sticky) à direita.
-              Abaixo de xl: uma coluna só, lançamentos antes do gráfico. */}
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5 items-start">
-            <ExpenseList
-              expenses={filteredExpenses}
-              onEdit={handleEdit}
-              onDelete={deleteExpense}
-              duplicatasPagamentoFatura={duplicatasPagamentoFatura}
-            />
+          <ExpenseList
+            expenses={filteredExpenses}
+            onEdit={handleEdit}
+            onDelete={deleteExpense}
+            duplicatasPagamentoFatura={duplicatasPagamentoFatura}
+          />
 
-            <ChartSection expenses={filteredExpenses} />
-          </div>
+          {/* Sempre abaixo dos lançamentos, em largura total — inclusive no desktop — para
+              não espremer a lista numa coluna estreita ao lado do gráfico. */}
+          <ChartSection expenses={filteredExpenses} />
 
           <div className="bg-violet-50 border border-violet-100 rounded-[18px] px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
             <div className="flex items-center gap-3 text-center sm:text-left">

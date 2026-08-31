@@ -174,9 +174,9 @@ export function ExpenseList({ expenses, onEdit, onDelete, duplicatasPagamentoFat
         </span>
       </div>
 
-      {/* Só 2 colunas no máximo: a partir de xl a lista divide espaço com o gráfico fixo
-          ao lado (ver App.jsx), então 3 colunas ficariam apertadas demais. */}
-      <div key={showAll ? 'expanded' : 'collapsed'} className="grid grid-cols-1 sm:grid-cols-2 gap-5 fade-in-up">
+      {/* 2 colunas no máximo — o dashboard é vertical (gráfico abaixo, não ao lado), então
+          os cards podem ficar largos o bastante para a descrição não quebrar demais. */}
+      <div key={showAll ? 'expanded' : 'collapsed'} className="grid grid-cols-1 lg:grid-cols-2 gap-5 fade-in-up">
         {visibleExpenses.map(renderCard)}
       </div>
 
