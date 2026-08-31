@@ -62,6 +62,9 @@ export function ImportPdfModal({ parsedItems, existingExpenses, onConfirm, onClo
       descricao: row.descricao.trim(),
       tipo: row.tipo === 'entrada' ? 'entrada' : 'saida',
       origem: row.origem,
+      // Sem isso, toda compra de fatura perdia a marcação do vencimento no momento de
+      // salvar — mesmo com o parser correto, a conciliação com o extrato nunca batia.
+      faturaVencimento: row.faturaVencimento,
       criadoEm: new Date().toISOString(),
     }));
     onConfirm(expenses);
