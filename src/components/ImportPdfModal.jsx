@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { X, Check, AlertTriangle, FileWarning, Receipt } from 'lucide-react';
-import { CATEGORIAS, CATEGORIAS_ENTRADA } from '../constants';
+import { CATEGORIAS, CATEGORIAS_ENTRADA, MESES_NOMES } from '../constants';
 import { encontrarFaturaConciliada as buscarFaturaConciliada } from '../utils/faturaReconciliation';
-
-const MESES_NOMES = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-];
+import { formatCurrency } from '../utils/format';
 
 function formatarFaturaLabel(chave) {
   if (chave.startsWith('legado-')) return 'uma fatura já importada';
@@ -203,7 +199,7 @@ export function ImportPdfModal({ parsedItems, existingExpenses, onConfirm, onClo
               <span>
                 Entradas:{' '}
                 <span className="text-emerald-600 font-extrabold">
-                  + R$ {selectedEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  + R$ {formatCurrency(selectedEntradas)}
                 </span>
               </span>
             )}
@@ -211,7 +207,7 @@ export function ImportPdfModal({ parsedItems, existingExpenses, onConfirm, onClo
               <span>
                 Saídas:{' '}
                 <span className="text-blue-600 font-extrabold">
-                  R$ {selectedSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  R$ {formatCurrency(selectedSaidas)}
                 </span>
               </span>
             )}

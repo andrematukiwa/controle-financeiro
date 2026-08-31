@@ -1,3 +1,8 @@
+export const MESES_NOMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
 export const CATEGORIAS = {
   Alimentação: { emoji: '🍔', cor: '#ec4899' },
   Mercado: { emoji: '🛒', cor: '#22c55e' },

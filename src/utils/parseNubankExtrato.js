@@ -1,9 +1,5 @@
 import { guessCategoria, guessCategoriaEntrada } from '../constants/categoryKeywords';
-
-const MESES = {
-  JAN: 0, FEV: 1, MAR: 2, ABR: 3, MAI: 4, JUN: 5,
-  JUL: 6, AGO: 7, SET: 8, OUT: 9, NOV: 10, DEZ: 11,
-};
+import { MESES_ABREVIADOS as MESES } from '../constants/dates';
 
 // Valor no formato brasileiro (ex: "1.914,16"). Exigir a vírgula com 2 decimais evita
 // confundir números de página, telefones e CNPJs (que não usam esse formato) com valores.

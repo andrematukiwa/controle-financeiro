@@ -1,9 +1,5 @@
 import { guessCategoria } from '../constants/categoryKeywords';
-
-const MESES = {
-  JAN: 0, FEV: 1, MAR: 2, ABR: 3, MAI: 4, JUN: 5,
-  JUL: 6, AGO: 7, SET: 8, OUT: 9, NOV: 10, DEZ: 11,
-};
+import { MESES_ABREVIADOS as MESES } from '../constants/dates';
 
 // "•••• 5830" antes do nome do estabelecimento só aparece em transações reais do cartão,
 // o que já filtra headers, resumos e a linha de pagamento (que não tem esse trecho).

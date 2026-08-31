@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, FileDown, Upload, Loader2, ArrowDownLeft, ArrowUpRight, Wallet, Calendar, Pencil, Check, X as XIcon } from 'lucide-react';
-import { exportDashboardToPDF } from '../utils/exportPdf';
-
-const formatMoeda = (valor) => Math.abs(valor).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+import { formatCurrency as formatMoeda } from '../utils/format';
+import { MESES_NOMES } from '../constants';
 
 const THEMES = {
   saidas: {
@@ -83,6 +82,7 @@ function StatCard({ theme, title, value, sign, Icon, count, overrideActive, onOv
               type="number"
               step="0.01"
               autoFocus
+              aria-label={`Valor manual de ${title}`}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -126,13 +126,18 @@ export function Header({
   saidasOverrideActive, entradasOverrideActive, onSaidasOverride, onEntradasOverride,
   expenses, duplicatasPagamentoFatura, onImportClick, importLoading,
 }) {
-  const monthNames = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-  ];
+  const [exporting, setExporting] = useState(false);
 
-  const handleExport = () => {
-    exportDashboardToPDF(currentDate.getMonth(), currentDate.getFullYear(), total, entradas, expenses, duplicatasPagamentoFatura);
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      // Importado sob demanda: jsPDF + jspdf-autotable só são necessários quando o
+      // usuário realmente exporta o relatório do mês.
+      const { exportDashboardToPDF } = await import('../utils/exportPdf');
+      exportDashboardToPDF(currentDate.getMonth(), currentDate.getFullYear(), total, entradas, expenses, duplicatasPagamentoFatura);
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -179,7 +184,7 @@ export function Header({
           <div className="flex items-center gap-1.5 min-w-[130px] justify-center text-slate-800">
             <Calendar size={15} strokeWidth={2.5} className="text-slate-400 shrink-0" aria-hidden="true" />
             <span className="text-base font-bold capitalize tracking-wide whitespace-nowrap">
-              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+              {MESES_NOMES[currentDate.getMonth()]} {currentDate.getFullYear()}
             </span>
           </div>
           <button
@@ -207,10 +212,15 @@ export function Header({
 
           <button
             onClick={handleExport}
-            className="flex-1 sm:flex-none h-11 flex items-center justify-center gap-2 bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-100 transition-all px-4 rounded-[14px] font-semibold text-sm active:scale-95 whitespace-nowrap"
+            disabled={exporting}
+            className="flex-1 sm:flex-none h-11 flex items-center justify-center gap-2 bg-violet-50 text-violet-700 hover:bg-violet-100 border border-violet-100 transition-all px-4 rounded-[14px] font-semibold text-sm active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed whitespace-nowrap"
           >
-            <FileDown size={18} strokeWidth={2.5} className="shrink-0" aria-hidden="true" />
-            <span>Exportar PDF</span>
+            {exporting ? (
+              <Loader2 size={18} strokeWidth={2.5} className="animate-spin shrink-0" />
+            ) : (
+              <FileDown size={18} strokeWidth={2.5} className="shrink-0" aria-hidden="true" />
+            )}
+            <span>{exporting ? 'Gerando PDF...' : 'Exportar PDF'}</span>
           </button>
         </div>
       </div>

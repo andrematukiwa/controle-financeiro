@@ -7,7 +7,9 @@ import { ExpensesChart } from './components/ExpensesChart';
 import { ImportPdfModal } from './components/ImportPdfModal';
 import { CATEGORIAS } from './constants';
 import { Filter, RotateCcw, Sparkles, BarChart3, X } from 'lucide-react';
-import { parseNubankPdf } from './utils/parseNubankPdf';
+
+const SELECT_CLASS = "h-10 bg-[#F4F7FB] border border-[#E5EAF2] text-slate-700 rounded-[12px] px-3 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium text-sm cursor-pointer appearance-none";
+const SELECT_ARROW_STYLE = { backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.6rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.1rem', paddingRight: '2.25rem' };
 
 function App() {
   const {
@@ -96,6 +98,9 @@ function App() {
     setImportError('');
     setImportLoading(true);
     try {
+      // Importado sob demanda: pdfjs-dist é pesado (~1.2MB, worker incluso) e só é
+      // necessário quando o usuário realmente importa um PDF.
+      const { parseNubankPdf } = await import('./utils/parseNubankPdf');
       const items = await parseNubankPdf(file);
       if (items.length === 0) {
         setImportError('Não foi possível encontrar transações nesse PDF. Confira se é uma fatura ou extrato do Nubank.');
@@ -176,10 +181,11 @@ function App() {
             </div>
 
             <select
+              aria-label="Filtrar por tipo"
               value={tipoFilter}
               onChange={(e) => setTipoFilter(e.target.value)}
-              className="h-10 bg-[#F4F7FB] border border-[#E5EAF2] text-slate-700 rounded-[12px] px-3 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium text-sm cursor-pointer appearance-none"
-              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.6rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.1rem', paddingRight: '2.25rem' }}
+              className={SELECT_CLASS}
+              style={SELECT_ARROW_STYLE}
             >
               <option value="">Entradas e Saídas</option>
               <option value="saida">Só Saídas</option>
@@ -187,10 +193,11 @@ function App() {
             </select>
 
             <select
+              aria-label="Filtrar por categoria"
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="h-10 bg-[#F4F7FB] border border-[#E5EAF2] text-slate-700 rounded-[12px] px-3 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium text-sm cursor-pointer appearance-none"
-              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.6rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.1rem', paddingRight: '2.25rem' }}
+              className={SELECT_CLASS}
+              style={SELECT_ARROW_STYLE}
             >
               <option value="">Todas as Categorias</option>
               {Object.keys(CATEGORIAS).map(cat => (
@@ -199,10 +206,11 @@ function App() {
             </select>
 
             <select
+              aria-label="Filtrar por dia"
               value={dayFilter}
               onChange={(e) => setDayFilter(e.target.value)}
-              className="h-10 bg-[#F4F7FB] border border-[#E5EAF2] text-slate-700 rounded-[12px] px-3 focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all font-medium text-sm cursor-pointer appearance-none"
-              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.6rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.1rem', paddingRight: '2.25rem' }}
+              className={SELECT_CLASS}
+              style={SELECT_ARROW_STYLE}
             >
               <option value="">Todos os Dias</option>
               {uniqueDays.map(day => (

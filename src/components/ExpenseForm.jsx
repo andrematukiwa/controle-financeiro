@@ -1,16 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { CATEGORIAS, CATEGORIAS_ENTRADA } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 import { CheckCircle2, AlertCircle, Loader2, FileText, LayoutGrid, Calendar, Lightbulb } from 'lucide-react';
 
+function monthKeyOf(date) {
+  return date ? `${date.getFullYear()}-${date.getMonth()}` : null;
+}
+
 export function ExpenseForm({ onSubmit, initialData = null, onCancel, currentDate }) {
-  const getDefaultDate = () => {
-    if (currentDate) {
-      const year = currentDate.getFullYear();
-      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+  const getDefaultDate = (referenceDate) => {
+    if (referenceDate) {
+      const year = referenceDate.getFullYear();
+      const month = String(referenceDate.getMonth() + 1).padStart(2, '0');
       const today = new Date();
-      let day = String(currentDate.getDate()).padStart(2, '0');
-      if (year === today.getFullYear() && currentDate.getMonth() === today.getMonth()) {
+      let day = String(referenceDate.getDate()).padStart(2, '0');
+      if (year === today.getFullYear() && referenceDate.getMonth() === today.getMonth()) {
         day = String(today.getDate()).padStart(2, '0');
       }
       return `${year}-${month}-${day}`;
@@ -18,11 +22,11 @@ export function ExpenseForm({ onSubmit, initialData = null, onCancel, currentDat
     return new Date().toISOString().split('T')[0];
   };
 
-  const [valor, setValor] = useState('');
-  const [categoria, setCategoria] = useState('');
-  const [data, setData] = useState(getDefaultDate());
-  const [descricao, setDescricao] = useState('');
-  const [tipo, setTipo] = useState('saida');
+  const [valor, setValor] = useState(() => (initialData ? initialData.valor.toString() : ''));
+  const [categoria, setCategoria] = useState(() => (initialData ? initialData.categoria : ''));
+  const [data, setData] = useState(() => (initialData ? initialData.data : getDefaultDate(currentDate)));
+  const [descricao, setDescricao] = useState(() => (initialData ? initialData.descricao || '' : ''));
+  const [tipo, setTipo] = useState(() => (initialData ? (initialData.tipo === 'entrada' ? 'entrada' : 'saida') : 'saida'));
 
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -32,17 +36,16 @@ export function ExpenseForm({ onSubmit, initialData = null, onCancel, currentDat
 
   const categoriaOptions = tipo === 'entrada' ? CATEGORIAS_ENTRADA : CATEGORIAS;
 
-  useEffect(() => {
-    if (initialData) {
-      setValor(initialData.valor.toString());
-      setCategoria(initialData.categoria);
-      setData(initialData.data);
-      setDescricao(initialData.descricao || '');
-      setTipo(initialData.tipo === 'entrada' ? 'entrada' : 'saida');
-    } else {
-      setData(getDefaultDate());
-    }
-  }, [initialData, currentDate]);
+  // Enquanto cria um lançamento novo (sem editar), a data acompanha o mês selecionado
+  // no painel. Ajustado durante a renderização (em vez de um useEffect) para não apagar
+  // valor/categoria/descrição já preenchidos só por navegar entre meses — o `key` do
+  // formulário em App.jsx já cuida de resetar tudo quando o alvo de edição muda.
+  const [lastMonthKey, setLastMonthKey] = useState(() => monthKeyOf(currentDate));
+  const monthKey = monthKeyOf(currentDate);
+  if (!initialData && monthKey !== lastMonthKey) {
+    setLastMonthKey(monthKey);
+    setData(getDefaultDate(currentDate));
+  }
 
   const handleTipoChange = (novoTipo) => {
     setTipo(novoTipo);
@@ -94,7 +97,7 @@ export function ExpenseForm({ onSubmit, initialData = null, onCancel, currentDat
       setValor('');
       setCategoria('');
       setDescricao('');
-      setData(getDefaultDate());
+      setData(getDefaultDate(currentDate));
 
       if (valorInputRef.current) {
         valorInputRef.current.focus();

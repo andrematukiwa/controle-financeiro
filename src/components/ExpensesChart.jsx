@@ -10,6 +10,24 @@ import {
   Cell
 } from 'recharts';
 import { CATEGORIAS } from '../constants';
+import { formatCurrency } from '../utils/format';
+
+function ChartTooltip({ active, payload }) {
+  if (!active || !payload || !payload.length) return null;
+  const data = payload[0].payload;
+  return (
+    <div
+      style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', border: '1px solid #f1f5f9', minWidth: '150px' }}
+    >
+      <p style={{ fontWeight: 600, fontSize: '14px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px', color: '#334155' }}>
+        {data.emoji} {data.name}
+      </p>
+      <p style={{ fontSize: '20px', fontWeight: 700, color: '#2563eb' }}>
+        R$ {formatCurrency(data.value)}
+      </p>
+    </div>
+  );
+}
 
 export function ExpensesChart({ expenses }) {
   const data = useMemo(() => {
@@ -34,25 +52,6 @@ export function ExpensesChart({ expenses }) {
   }, [expenses]);
 
   if (data.length === 0) return null;
-
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div 
-          style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', border: '1px solid #f1f5f9', minWidth: '150px' }}
-        >
-          <p style={{ fontWeight: 600, fontSize: '14px', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px', color: '#334155' }}>
-            {data.emoji} {data.name}
-          </p>
-          <p style={{ fontSize: '20px', fontWeight: 700, color: '#2563eb' }}>
-            R$ {data.value.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div id="expenses-chart" style={{ padding: '20px', backgroundColor: '#ffffff', minHeight: '360px' }}>
@@ -82,8 +81,8 @@ export function ExpensesChart({ expenses }) {
               tickLine={false}
               width={80}
             />
-            <Tooltip 
-              content={<CustomTooltip />} 
+            <Tooltip
+              content={<ChartTooltip />}
               cursor={false} 
               position={{ y: -10 }}
               isAnimationActive={false}

@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-
-const formatMoeda = (valor) => valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+import { formatCurrency as formatMoeda } from './format';
+import { MESES_NOMES } from '../constants';
 
 function desenharTabelaLancamentos(pdf, titulo, itens, startY, headColor) {
   pdf.setFontSize(13);
@@ -69,11 +69,7 @@ export const exportDashboardToPDF = (month, year, totalSaidas, totalEntradas, ex
   try {
     const pdf = new jsPDF('p', 'mm', 'a4');
 
-    const monthNames = [
-      'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-      'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-    ];
-    const monthName = monthNames[month];
+    const monthName = MESES_NOMES[month];
     const saldo = totalEntradas - totalSaidas;
     const duplicatas = duplicatasPagamentoFatura || new Set();
 

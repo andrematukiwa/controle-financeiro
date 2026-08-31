@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CATEGORIAS, CATEGORIAS_ENTRADA } from '../constants';
 import { Edit2, Trash2, AlertTriangle, MoreVertical, Calendar, Receipt } from 'lucide-react';
+import { formatCurrency } from '../utils/format';
 
 function CardMenu({ onEdit, onDelete }) {
   const [open, setOpen] = useState(false);
@@ -131,7 +132,7 @@ export function ExpenseList({ expenses, onEdit, onDelete, duplicatasPagamentoFat
                   ) : (
                     <span className="text-red-500">- </span>
                   )}
-                  R$ {expense.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  R$ {formatCurrency(expense.valor)}
                 </span>
               </div>
             ) : (
